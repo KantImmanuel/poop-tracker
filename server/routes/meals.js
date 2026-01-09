@@ -1,0 +1,160 @@
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const { authenticateToken } = require('../middleware/auth');
+const { analyzeFoodImage } = require('../services/ai');
+
+const router = express.Router();
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../uploads'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp|heic/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
+// Get all meals (optionally filtered by date)
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const { date } = req.query;
+    let where = { userId: req.user.userId };
+
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      where.timestamp = {
+        gte: startOfDay,
+        lte: endOfDay
+      };
+    }
+
+    const meals = await req.prisma.meal.findMany({
+      where,
+      include: { foods: true },
+      orderBy: { timestamp: 'desc' }
+    });
+
+    res.json(meals);
+  } catch (error) {
+    console.error('Get meals error:', error);
+    res.status(500).json({ message: 'Failed to fetch meals' });
+  }
+});
+
+// Get single meal
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const meal = await req.prisma.meal.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.user.userId
+      },
+      include: { foods: true }
+    });
+
+    if (!meal) {
+      return res.status(404).json({ message: 'Meal not found' });
+    }
+
+    res.json(meal);
+  } catch (error) {
+    console.error('Get meal error:', error);
+    res.status(500).json({ message: 'Failed to fetch meal' });
+  }
+});
+
+// Create meal with image
+router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
+  try {
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    // Analyze image with AI
+    let aiResult = { foods: [] };
+    if (req.file) {
+      aiResult = await analyzeFoodImage(req.file.path);
+    }
+
+    // Create meal with foods
+    const meal = await req.prisma.meal.create({
+      data: {
+        userId: req.user.userId,
+        imageUrl,
+        rawAiResponse: JSON.stringify(aiResult),
+        foods: {
+          create: aiResult.foods.map(food => ({
+            name: food.name,
+            category: food.category || null,
+            ingredients: food.ingredients ? JSON.stringify(food.ingredients) : null,
+            brand: food.brand || null,
+            restaurant: food.restaurant || null,
+            confidence: food.confidence || null
+          }))
+        }
+      },
+      include: { foods: true }
+    });
+
+    // Parse ingredients back for response
+    const response = {
+      ...meal,
+      foods: meal.foods.map(f => ({
+        ...f,
+        ingredients: f.ingredients ? JSON.parse(f.ingredients) : []
+      }))
+    };
+
+    res.status(201).json(response);
+  } catch (error) {
+    console.error('Create meal error:', error);
+    res.status(500).json({ message: 'Failed to create meal' });
+  }
+});
+
+// Delete meal
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const meal = await req.prisma.meal.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.user.userId
+      }
+    });
+
+    if (!meal) {
+      return res.status(404).json({ message: 'Meal not found' });
+    }
+
+    await req.prisma.meal.delete({
+      where: { id: req.params.id }
+    });
+
+    res.json({ message: 'Meal deleted' });
+  } catch (error) {
+    console.error('Delete meal error:', error);
+    res.status(500).json({ message: 'Failed to delete meal' });
+  }
+});
+
+module.exports = router;
