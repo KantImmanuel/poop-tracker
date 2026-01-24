@@ -1,38 +1,55 @@
 /**
  * AI Service for food analysis and correlation detection
  *
- * Supports both Claude (Anthropic) and OpenAI
- * Set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env
+ * Image Analysis Priority:
+ * 1. Google Cloud Vision (for object detection) + Claude (for ingredient analysis)
+ * 2. Claude alone (fallback)
+ * 3. Mock responses (no API keys)
+ *
+ * Set GOOGLE_CLOUD_API_KEY and ANTHROPIC_API_KEY in .env
  */
 
 const fs = require('fs');
 
-// Determine which AI provider to use
+// Determine which AI providers to use
+const USE_GOOGLE_VISION = !!process.env.GOOGLE_CLOUD_API_KEY;
 const USE_CLAUDE = !!process.env.ANTHROPIC_API_KEY;
 const USE_OPENAI = !!process.env.OPENAI_API_KEY;
 
 let anthropic = null;
 let openai = null;
 
+if (USE_GOOGLE_VISION) {
+  console.log('AI Service: Using Google Cloud Vision for image analysis');
+}
+
 if (USE_CLAUDE) {
   const Anthropic = require('@anthropic-ai/sdk');
   anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
   });
-  console.log('AI Service: Using Claude (Anthropic)');
-} else if (USE_OPENAI) {
+  console.log('AI Service: Using Claude for food/ingredient analysis');
+}
+
+if (USE_OPENAI) {
   const OpenAI = require('openai');
   openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
   });
-  console.log('AI Service: Using OpenAI');
-} else {
-  console.log('AI Service: Using mock responses (set ANTHROPIC_API_KEY or OPENAI_API_KEY for real AI)');
+  if (!USE_CLAUDE) {
+    console.log('AI Service: Using OpenAI for analysis');
+  }
+}
+
+if (!USE_GOOGLE_VISION && !USE_CLAUDE && !USE_OPENAI) {
+  console.log('AI Service: Using mock responses (set GOOGLE_CLOUD_API_KEY + ANTHROPIC_API_KEY for real AI)');
 }
 
 // Food image analysis
 async function analyzeFoodImage(imagePath) {
-  if (USE_CLAUDE && imagePath) {
+  if (USE_GOOGLE_VISION && USE_CLAUDE && imagePath) {
+    return analyzeWithGoogleVisionAndClaude(imagePath);
+  } else if (USE_CLAUDE && imagePath) {
     return analyzeWithClaude(imagePath);
   } else if (USE_OPENAI && imagePath) {
     return analyzeWithOpenAI(imagePath);
@@ -40,18 +57,62 @@ async function analyzeFoodImage(imagePath) {
   return mockFoodAnalysis();
 }
 
-// Claude implementation
-async function analyzeWithClaude(imagePath) {
+// Google Cloud Vision + Claude hybrid approach
+async function analyzeWithGoogleVisionAndClaude(imagePath) {
   try {
+    // Step 1: Use Google Vision to detect objects/labels
     const imageBuffer = fs.readFileSync(imagePath);
     const base64Image = imageBuffer.toString('base64');
 
+    const visionResponse = await fetch(
+      `https://vision.googleapis.com/v1/images:annotate?key=${process.env.GOOGLE_CLOUD_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{
+            image: { content: base64Image },
+            features: [
+              { type: 'LABEL_DETECTION', maxResults: 20 },
+              { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
+              { type: 'TEXT_DETECTION', maxResults: 5 },
+              { type: 'LOGO_DETECTION', maxResults: 5 }
+            ]
+          }]
+        })
+      }
+    );
+
+    const visionData = await visionResponse.json();
+
+    if (visionData.error) {
+      console.error('Google Vision error:', visionData.error);
+      return analyzeWithClaude(imagePath);
+    }
+
+    const result = visionData.responses[0];
+
+    // Extract labels, objects, text, and logos
+    const labels = (result.labelAnnotations || []).map(l => ({
+      name: l.description,
+      confidence: l.score
+    }));
+
+    const objects = (result.localizedObjectAnnotations || []).map(o => ({
+      name: o.name,
+      confidence: o.score
+    }));
+
+    const texts = (result.textAnnotations || []).slice(0, 3).map(t => t.description);
+    const logos = (result.logoAnnotations || []).map(l => l.description);
+
+    // Step 2: Use Claude to interpret the vision results and extract food details
     const ext = imagePath.split('.').pop().toLowerCase();
     const mediaType = ext === 'png' ? 'image/png' : 'image/jpeg';
 
-    const response = await anthropic.messages.create({
+    const claudeResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: 1500,
       messages: [
         {
           role: 'user',
@@ -66,27 +127,121 @@ async function analyzeWithClaude(imagePath) {
             },
             {
               type: 'text',
-              text: `Analyze this food image for someone tracking IBS triggers. Extract:
-1. All foods visible (be specific: "pepperoni pizza" not just "pizza")
-2. Likely ingredients for each food (especially common IBS triggers like dairy, gluten, onion, garlic, etc.)
-3. Brand if visible/identifiable
-4. Restaurant if identifiable
-5. Approximate portion size
+              text: `I'm tracking IBS triggers. Google Vision detected these in my food photo:
 
-Return ONLY valid JSON in this exact format:
+LABELS: ${labels.map(l => `${l.name} (${Math.round(l.confidence * 100)}%)`).join(', ')}
+
+OBJECTS: ${objects.map(o => `${o.name} (${Math.round(o.confidence * 100)}%)`).join(', ')}
+
+TEXT VISIBLE: ${texts.join(', ') || 'none'}
+
+BRANDS/LOGOS: ${logos.join(', ') || 'none'}
+
+Based on this AND the image, identify each food item with:
+1. Specific name (e.g., "turkey sandwich" not just "sandwich")
+2. Likely ingredients (especially IBS triggers: dairy, gluten, onion, garlic, FODMAPs)
+3. Brand/restaurant if identifiable
+4. Your confidence (0.0-1.0)
+5. If uncertain, provide 2-3 alternatives
+
+IMPORTANT:
+- Don't list inedible parts (peels, etc.) as foods
+- Be specific about meat types
+- Multiple foods should be listed separately
+
+Return ONLY valid JSON:
 {
   "foods": [
     {
       "name": "Food Name",
-      "category": "Category (e.g., Dairy, Grains, Protein, Vegetables, etc.)",
+      "category": "Category",
       "ingredients": ["ingredient1", "ingredient2"],
       "brand": null,
       "restaurant": null,
       "portion": "portion description",
-      "confidence": 0.9
+      "confidence": 0.9,
+      "alternatives": ["Alt1", "Alt2"]
     }
   ],
-  "notes": "Any additional observations relevant to IBS"
+  "notes": "Any IBS-relevant observations"
+}`
+            }
+          ]
+        }
+      ]
+    });
+
+    const content = claudeResponse.content[0].text;
+    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+    return JSON.parse(jsonStr);
+
+  } catch (error) {
+    console.error('Google Vision + Claude error:', error);
+    // Fall back to Claude-only
+    if (USE_CLAUDE) {
+      return analyzeWithClaude(imagePath);
+    }
+    return mockFoodAnalysis();
+  }
+}
+
+// Claude-only implementation (fallback)
+async function analyzeWithClaude(imagePath) {
+  try {
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
+
+    const ext = imagePath.split('.').pop().toLowerCase();
+    const mediaType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType,
+                data: base64Image
+              }
+            },
+            {
+              type: 'text',
+              text: `Analyze this food image for someone tracking IBS triggers. Be careful and accurate.
+
+For EACH food item visible:
+1. Identify the food specifically (e.g., "pepperoni pizza" not just "pizza")
+2. List likely ingredients (especially IBS triggers: dairy, gluten, onion, garlic, FODMAPs)
+3. Note brand/restaurant if visible
+4. Estimate portion size
+5. Rate your confidence (0.0 to 1.0)
+6. If confidence < 0.8, provide 2-3 alternative guesses
+
+IMPORTANT:
+- Don't include inedible parts (peels, seeds, etc.) as separate foods
+- If multiple foods are visible, list each separately
+- Be specific about meat types (turkey vs ham, beef vs pork)
+
+Return ONLY valid JSON:
+{
+  "foods": [
+    {
+      "name": "Food Name",
+      "category": "Category",
+      "ingredients": ["ingredient1", "ingredient2"],
+      "brand": null,
+      "restaurant": null,
+      "portion": "portion description",
+      "confidence": 0.9,
+      "alternatives": ["Alternative 1", "Alternative 2"]
+    }
+  ],
+  "notes": "Any observations relevant to IBS"
 }`
             }
           ]
@@ -104,7 +259,7 @@ Return ONLY valid JSON in this exact format:
   }
 }
 
-// OpenAI implementation
+// OpenAI implementation (secondary fallback)
 async function analyzeWithOpenAI(imagePath) {
   try {
     const imageBuffer = fs.readFileSync(imagePath);
@@ -121,39 +276,19 @@ async function analyzeWithOpenAI(imagePath) {
           content: [
             {
               type: 'text',
-              text: `Analyze this food image for someone tracking IBS triggers. Extract:
-1. All foods visible (be specific: "pepperoni pizza" not just "pizza")
-2. Likely ingredients for each food (especially common IBS triggers like dairy, gluten, onion, garlic, etc.)
-3. Brand if visible/identifiable
-4. Restaurant if identifiable
-5. Approximate portion size
-
-Return ONLY valid JSON in this exact format:
-{
-  "foods": [
-    {
-      "name": "Food Name",
-      "category": "Category (e.g., Dairy, Grains, Protein, Vegetables, etc.)",
-      "ingredients": ["ingredient1", "ingredient2"],
-      "brand": null,
-      "restaurant": null,
-      "portion": "portion description",
-      "confidence": 0.9
-    }
-  ],
-  "notes": "Any additional observations relevant to IBS"
-}`
+              text: `Analyze this food image for someone tracking IBS triggers. Return ONLY valid JSON with foods array containing name, category, ingredients, brand, restaurant, portion, confidence, and alternatives.`
             },
             {
               type: 'image_url',
               image_url: {
-                url: `data:${mimeType};base64,${base64Image}`
+                url: `data:${mimeType};base64,${base64Image}`,
+                detail: 'high'
               }
             }
           ]
         }
       ],
-      max_tokens: 1000
+      max_tokens: 1500
     });
 
     const content = response.choices[0].message.content;
@@ -168,44 +303,32 @@ Return ONLY valid JSON in this exact format:
 
 // Mock food analysis
 function mockFoodAnalysis() {
-  const mockFoods = [
-    {
-      name: 'Mixed Salad',
-      category: 'Vegetables',
-      ingredients: ['lettuce', 'tomatoes', 'cucumber', 'olive oil', 'vinegar'],
-      confidence: 0.85
-    },
-    {
-      name: 'Grilled Chicken',
-      category: 'Protein',
-      ingredients: ['chicken breast', 'olive oil', 'garlic', 'herbs'],
-      confidence: 0.9
-    },
-    {
-      name: 'Rice',
-      category: 'Grains',
-      ingredients: ['white rice'],
-      confidence: 0.95
-    }
-  ];
-
-  const numItems = Math.floor(Math.random() * 3) + 1;
   return {
-    foods: mockFoods.slice(0, numItems),
-    notes: 'Mock analysis - set ANTHROPIC_API_KEY or OPENAI_API_KEY in server/.env for real AI'
+    foods: [
+      {
+        name: 'Sample Food',
+        category: 'Unknown',
+        ingredients: ['unknown'],
+        confidence: 0.5,
+        alternatives: []
+      }
+    ],
+    notes: 'Mock analysis - set GOOGLE_CLOUD_API_KEY + ANTHROPIC_API_KEY for real AI'
   };
 }
 
-// Correlation analysis
+// Correlation analysis (uses Claude)
 async function analyzeCorrelations(meals, poops) {
-  if ((USE_CLAUDE || USE_OPENAI) && meals.length > 0 && poops.length > 0) {
-    return analyzeCorrelationsWithAI(meals, poops);
+  if (USE_CLAUDE && meals.length > 0 && poops.length > 0) {
+    return analyzeCorrelationsWithClaude(meals, poops);
+  } else if (USE_OPENAI && meals.length > 0 && poops.length > 0) {
+    return analyzeCorrelationsWithOpenAI(meals, poops);
   }
   return mockCorrelationAnalysis(meals);
 }
 
-// AI correlation analysis (works with both Claude and OpenAI)
-async function analyzeCorrelationsWithAI(meals, poops) {
+// Claude correlation analysis
+async function analyzeCorrelationsWithClaude(meals, poops) {
   const prompt = `Analyze this food and bowel movement data to identify potential IBS trigger foods/ingredients.
 
 MEALS (with timestamps and ingredients):
@@ -214,12 +337,13 @@ ${JSON.stringify(meals.map(m => ({
   foods: m.foods.map(f => ({ name: f.name, ingredients: f.ingredients }))
 })), null, 2)}
 
-BOWEL MOVEMENTS (timestamps):
-${JSON.stringify(poops.map(p => p.timestamp), null, 2)}
+BOWEL MOVEMENTS (timestamps and severity):
+${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity })), null, 2)}
 
 Look for correlations between specific foods/ingredients and bowel movements that occur within 2-24 hours after eating. Consider:
 - Frequency of ingredient consumption before bowel movements
 - Time patterns between eating and symptoms
+- Severity patterns (do certain foods cause more severe symptoms?)
 - Known IBS trigger categories (FODMAPs, dairy, gluten, caffeine, etc.)
 
 Return ONLY valid JSON:
@@ -231,36 +355,50 @@ Return ONLY valid JSON:
 }`;
 
   try {
-    let content;
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers. Focus on common triggers like FODMAPs (garlic, onion, wheat, dairy, certain fruits), caffeine, alcohol, fatty foods, and artificial sweeteners. Pay attention to severity patterns.',
+      messages: [{ role: 'user', content: prompt }]
+    });
 
-    if (USE_CLAUDE) {
-      const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers. Focus on common triggers like FODMAPs (garlic, onion, wheat, dairy, certain fruits), caffeine, alcohol, fatty foods, and artificial sweeteners.',
-        messages: [{ role: 'user', content: prompt }]
-      });
-      content = response.content[0].text;
-    } else {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers. Focus on common triggers like FODMAPs (garlic, onion, wheat, dairy, certain fruits), caffeine, alcohol, fatty foods, and artificial sweeteners.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 1000
-      });
-      content = response.choices[0].message.content;
-    }
-
+    const content = response.content[0].text;
     const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
     return JSON.parse(jsonStr);
   } catch (error) {
-    console.error('AI correlation error:', error);
+    console.error('Claude correlation error:', error);
+    return mockCorrelationAnalysis(meals);
+  }
+}
+
+// OpenAI correlation analysis (fallback)
+async function analyzeCorrelationsWithOpenAI(meals, poops) {
+  const prompt = `Analyze this food and bowel movement data for IBS triggers. Return JSON with triggers array and notes.
+
+MEALS: ${JSON.stringify(meals.map(m => ({ timestamp: m.timestamp, foods: m.foods.map(f => ({ name: f.name, ingredients: f.ingredients })) })))}
+
+BOWEL MOVEMENTS: ${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity })))}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 1500
+    });
+
+    const content = response.choices[0].message.content;
+    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error('OpenAI correlation error:', error);
     return mockCorrelationAnalysis(meals);
   }
 }
@@ -282,17 +420,16 @@ function mockCorrelationAnalysis(meals) {
 
   const commonIngredients = Object.entries(ingredientCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 3)
     .map(([name, count]) => ({
       name,
-      confidence: Math.random() * 0.5 + 0.3,
-      occurrences: count
-    }))
-    .sort((a, b) => b.confidence - a.confidence);
+      confidence: 0.5,
+      reason: `Appeared ${count} times in your meals`
+    }));
 
   return {
-    triggers: commonIngredients.slice(0, 3),
-    notes: 'Mock analysis - set ANTHROPIC_API_KEY or OPENAI_API_KEY in server/.env for real AI'
+    triggers: commonIngredients,
+    notes: 'Mock analysis - configure API keys for real AI analysis'
   };
 }
 

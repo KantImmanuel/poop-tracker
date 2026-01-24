@@ -132,6 +132,86 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
   }
 });
 
+// Create manual meal (without image)
+router.post('/manual', authenticateToken, async (req, res) => {
+  try {
+    const { foods } = req.body;
+
+    if (!foods || !Array.isArray(foods) || foods.length === 0) {
+      return res.status(400).json({ message: 'At least one food item is required' });
+    }
+
+    const meal = await req.prisma.meal.create({
+      data: {
+        userId: req.user.userId,
+        rawAiResponse: JSON.stringify({ foods, manual: true }),
+        foods: {
+          create: foods.map(food => ({
+            name: food.name,
+            category: food.category || null,
+            ingredients: food.ingredients ? JSON.stringify(food.ingredients) : null,
+            brand: food.brand || null,
+            restaurant: food.restaurant || null,
+            confidence: 1.0 // Manual entry = full confidence
+          }))
+        }
+      },
+      include: { foods: true }
+    });
+
+    const response = {
+      ...meal,
+      foods: meal.foods.map(f => ({
+        ...f,
+        ingredients: f.ingredients ? JSON.parse(f.ingredients) : []
+      }))
+    };
+
+    res.status(201).json(response);
+  } catch (error) {
+    console.error('Create manual meal error:', error);
+    res.status(500).json({ message: 'Failed to create meal' });
+  }
+});
+
+// Clarify/correct a food item
+router.put('/:id/clarify', authenticateToken, async (req, res) => {
+  try {
+    const { foodIndex, correctedName } = req.body;
+
+    const meal = await req.prisma.meal.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.user.userId
+      },
+      include: { foods: true }
+    });
+
+    if (!meal) {
+      return res.status(404).json({ message: 'Meal not found' });
+    }
+
+    if (foodIndex >= meal.foods.length) {
+      return res.status(400).json({ message: 'Invalid food index' });
+    }
+
+    const foodToUpdate = meal.foods[foodIndex];
+
+    await req.prisma.food.update({
+      where: { id: foodToUpdate.id },
+      data: {
+        name: correctedName,
+        confidence: 1.0 // User corrected = full confidence
+      }
+    });
+
+    res.json({ message: 'Food updated' });
+  } catch (error) {
+    console.error('Clarify food error:', error);
+    res.status(500).json({ message: 'Failed to update food' });
+  }
+});
+
 // Delete meal
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {

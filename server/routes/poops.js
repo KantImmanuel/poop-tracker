@@ -33,12 +33,15 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Log a poop (one tap!)
+// Log a poop (with optional severity)
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    const { severity } = req.body;
+
     const poop = await req.prisma.poopLog.create({
       data: {
-        userId: req.user.userId
+        userId: req.user.userId,
+        severity: severity || null
       }
     });
 
