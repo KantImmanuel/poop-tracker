@@ -43,4 +43,5 @@ model PoopLog {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   timestamp DateTime @default(now())
+  severity  String?  // mild, moderate, severe
 }
