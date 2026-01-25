@@ -122,15 +122,6 @@ function Home() {
             <strong>{todayStats.meals}</strong> meals · <strong>{todayStats.poops}</strong> poops
           </p>
         </div>
-
-        {/* Manual meal entry link */}
-        <button
-          className="btn btn-outline mt-2"
-          onClick={() => navigate('/log-meal?manual=true')}
-          style={{ width: '100%' }}
-        >
-          ✏️ Add Meal Without Photo
-        </button>
       </div>
     </div>
   );
