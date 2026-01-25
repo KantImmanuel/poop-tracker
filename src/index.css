@@ -214,6 +214,11 @@ body {
   to { transform: rotate(360deg); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;

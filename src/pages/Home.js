@@ -48,12 +48,12 @@ function Home() {
       setShowSuccess(true);
       setShowUndo(true);
 
-      // Hide success after 2s, but keep undo for 5s
+      // Hide success after 2s, but keep undo for 10s (more time to notice)
       setTimeout(() => setShowSuccess(false), 2000);
       setTimeout(() => {
         setShowUndo(false);
         setLastPoopId(null);
-      }, 5000);
+      }, 10000);
     } catch (error) {
       console.error('Failed to log poop:', error);
       alert('Failed to log. Please try again.');
@@ -164,13 +164,30 @@ function Home() {
         </div>
 
         {showUndo && (
-          <button
-            className="btn btn-outline mt-2"
-            onClick={handleUndo}
-            style={{ width: '100%', color: '#dc2626', borderColor: '#dc2626' }}
-          >
-            ↩️ Undo Last Poop Log
-          </button>
+          <div className="undo-container mt-2" style={{
+            background: '#fef2f2',
+            border: '2px solid #dc2626',
+            borderRadius: '12px',
+            padding: '12px',
+            animation: 'fadeIn 0.3s ease'
+          }}>
+            <p style={{ margin: '0 0 8px 0', textAlign: 'center', color: '#dc2626', fontSize: '14px' }}>
+              Poop logged! Made a mistake?
+            </p>
+            <button
+              className="btn"
+              onClick={handleUndo}
+              style={{
+                width: '100%',
+                background: '#dc2626',
+                color: 'white',
+                padding: '12px',
+                fontWeight: '600'
+              }}
+            >
+              ↩️ Undo
+            </button>
+          </div>
         )}
 
         <div className="card mt-2 text-center">
