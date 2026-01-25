@@ -104,7 +104,16 @@ function History() {
                       </>
                     ) : (
                       <>
-                        <p style={{ margin: 0, fontWeight: '600' }}>Bowel Movement</p>
+                        <p style={{ margin: 0, fontWeight: '600' }}>
+                          Bowel Movement
+                          {item.severity && (
+                            <span style={{ marginLeft: '8px', fontWeight: '400' }}>
+                              {item.severity === 'mild' && '😊 Mild'}
+                              {item.severity === 'moderate' && '😐 Moderate'}
+                              {item.severity === 'severe' && '😣 Severe'}
+                            </span>
+                          )}
+                        </p>
                         <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#999' }}>
                           {formatTime(item.timestamp)}
                         </p>
