@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api, { offlinePost } from '../services/api';
 
@@ -20,6 +20,16 @@ function LogMeal() {
   const [needsClarification, setNeedsClarification] = useState(false);
   const [clarificationOptions, setClarificationOptions] = useState([]);
   const [pendingMealId, setPendingMealId] = useState(null);
+
+  // Auto-open camera on mount (photo mode only)
+  useEffect(() => {
+    if (!isManualMode && fileInputRef.current) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 100);
+    }
+  }, [isManualMode]);
 
   const handleCapture = (e) => {
     const file = e.target.files[0];
