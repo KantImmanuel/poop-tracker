@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { offlinePost } from '../services/api';
 
 function Home() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSeverityPicker, setShowSeverityPicker] = useState(false);
+
+  const handlePhotoCapture = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Navigate to log-meal with the captured image
+      navigate('/log-meal', { state: { capturedImage: file } });
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
 
   const handleLogPoop = async (selectedSeverity) => {
     setLoading(true);
@@ -31,11 +42,21 @@ function Home() {
         <h1 className="page-title">IBS Tracker</h1>
       </div>
 
+      <input
+        type="file"
+        id="home-photo-input"
+        accept="image/*"
+        capture="environment"
+        onChange={handlePhotoCapture}
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+      />
+
       <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '80px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-          <button
+          <label
+            htmlFor="home-photo-input"
             className="btn btn-primary"
-            onClick={() => navigate('/log-meal')}
             style={{
               flex: 1,
               display: 'flex',
@@ -43,12 +64,13 @@ function Home() {
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '24px',
-              gap: '12px'
+              gap: '12px',
+              cursor: 'pointer'
             }}
           >
             <span style={{ fontSize: '64px' }}>📷</span>
             Log Meal
-          </button>
+          </label>
 
           {!showSeverityPicker ? (
             <button

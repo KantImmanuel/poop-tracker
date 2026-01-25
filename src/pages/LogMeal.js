@@ -1,17 +1,29 @@
-import { useState, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import api, { offlinePost } from '../services/api';
 
 function LogMeal() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const isManualMode = searchParams.get('manual') === 'true';
 
+  // Get image passed from Home page
+  const capturedImage = location.state?.capturedImage;
+
   const fileInputRef = useRef(null);
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [image, setImage] = useState(capturedImage || null);
+  const [preview, setPreview] = useState(capturedImage ? URL.createObjectURL(capturedImage) : null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+
+  // Auto-submit when image is passed from Home
+  useEffect(() => {
+    if (capturedImage && !result && !loading) {
+      handleSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Manual entry state
   const [manualFoods, setManualFoods] = useState([{ name: '', ingredients: '' }]);
