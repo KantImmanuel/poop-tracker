@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import api from '../services/api';
+import api, { offlinePost } from '../services/api';
 
 function LogMeal() {
   const navigate = useNavigate();
@@ -39,9 +39,19 @@ function LogMeal() {
       const formData = new FormData();
       formData.append('image', image);
 
-      const response = await api.post('/meals', formData, {
+      const response = await offlinePost('/meals', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
+      // Check if saved offline
+      if (response.data.offline) {
+        setResult({
+          offline: true,
+          foods: [{ name: 'Meal saved offline', category: 'Pending sync' }],
+          notes: 'This meal will be analyzed when you\'re back online'
+        });
+        return;
+      }
 
       // Check if AI needs clarification (low confidence items)
       const lowConfidenceFoods = response.data.foods?.filter(f => f.confidence && f.confidence < 0.7);
@@ -97,13 +107,24 @@ function LogMeal() {
 
     setLoading(true);
     try {
-      const response = await api.post('/meals/manual', {
+      const foodData = {
         foods: validFoods.map(f => ({
           name: f.name.trim(),
           ingredients: f.ingredients.split(',').map(i => i.trim()).filter(Boolean)
         }))
-      });
-      setResult(response.data);
+      };
+      const response = await offlinePost('/meals/manual', foodData);
+
+      // Handle offline save
+      if (response.data.offline) {
+        setResult({
+          offline: true,
+          foods: foodData.foods.map(f => ({ name: f.name, ingredients: f.ingredients })),
+          notes: 'Saved offline - will sync when connected'
+        });
+      } else {
+        setResult(response.data);
+      }
     } catch (error) {
       console.error('Failed to log meal:', error);
       alert('Failed to log meal. Please try again.');

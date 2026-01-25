@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { offlinePost } from '../services/api';
 
 function Home() {
   const navigate = useNavigate();
@@ -17,6 +17,9 @@ function Home() {
   }, []);
 
   const fetchTodayStats = async () => {
+    // Skip fetching if offline - stats will update when synced
+    if (!navigator.onLine) return;
+
     try {
       // Use local timezone for "today" - fixes the midnight bug
       const now = new Date();
@@ -34,7 +37,10 @@ function Home() {
         poops: poopsRes.data.length
       });
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      // Silently fail if offline or network error
+      if (navigator.onLine) {
+        console.error('Failed to fetch stats:', error);
+      }
     }
   };
 
@@ -42,18 +48,23 @@ function Home() {
     setLoading(true);
     setShowSeverityPicker(false);
     try {
-      const response = await api.post('/poops', { severity: selectedSeverity });
-      setLastPoopId(response.data.id);
+      const response = await offlinePost('/poops', { severity: selectedSeverity });
+      const isOffline = response.data.offline || String(response.data.id).startsWith('offline-');
+
+      setLastPoopId(isOffline ? null : response.data.id);
       setTodayStats(prev => ({ ...prev, poops: prev.poops + 1 }));
       setShowSuccess(true);
-      setShowUndo(true);
 
-      // Hide success after 2s, but keep undo for 10s (more time to notice)
+      // Only show undo for online entries (can't undo offline)
+      if (!isOffline) {
+        setShowUndo(true);
+        setTimeout(() => {
+          setShowUndo(false);
+          setLastPoopId(null);
+        }, 10000);
+      }
+
       setTimeout(() => setShowSuccess(false), 2000);
-      setTimeout(() => {
-        setShowUndo(false);
-        setLastPoopId(null);
-      }, 10000);
     } catch (error) {
       console.error('Failed to log poop:', error);
       alert('Failed to log. Please try again.');
@@ -63,7 +74,7 @@ function Home() {
   };
 
   const handleUndo = async () => {
-    if (!lastPoopId) return;
+    if (!lastPoopId || String(lastPoopId).startsWith('offline-')) return;
     try {
       await api.delete(`/poops/${lastPoopId}`);
       setTodayStats(prev => ({ ...prev, poops: Math.max(0, prev.poops - 1) }));
