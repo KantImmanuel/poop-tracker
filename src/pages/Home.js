@@ -1,52 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api, { offlinePost } from '../services/api';
+import { offlinePost } from '../services/api';
 
 function Home() {
   const navigate = useNavigate();
-  const [todayStats, setTodayStats] = useState({ meals: 0, poops: 0 });
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSeverityPicker, setShowSeverityPicker] = useState(false);
-
-  useEffect(() => {
-    fetchTodayStats();
-  }, []);
-
-  const fetchTodayStats = async () => {
-    // Skip fetching if offline - stats will update when synced
-    if (!navigator.onLine) return;
-
-    try {
-      // Use local timezone for "today" - fixes the midnight bug
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const today = `${year}-${month}-${day}`;
-
-      const [mealsRes, poopsRes] = await Promise.all([
-        api.get(`/meals?date=${today}`),
-        api.get(`/poops?date=${today}`)
-      ]);
-      setTodayStats({
-        meals: mealsRes.data.length,
-        poops: poopsRes.data.length
-      });
-    } catch (error) {
-      // Silently fail if offline or network error
-      if (navigator.onLine) {
-        console.error('Failed to fetch stats:', error);
-      }
-    }
-  };
 
   const handleLogPoop = async (selectedSeverity) => {
     setLoading(true);
     setShowSeverityPicker(false);
     try {
       await offlinePost('/poops', { severity: selectedSeverity });
-      setTodayStats(prev => ({ ...prev, poops: prev.poops + 1 }));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (error) {
@@ -65,14 +31,22 @@ function Home() {
         <h1 className="page-title">IBS Tracker</h1>
       </div>
 
-      <div className="container">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '80px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
           <button
             className="btn btn-primary"
             onClick={() => navigate('/log-meal')}
-            style={{ padding: '32px' }}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              gap: '12px'
+            }}
           >
-            <span style={{ fontSize: '32px' }}>📷</span>
+            <span style={{ fontSize: '64px' }}>📷</span>
             Log Meal
           </button>
 
@@ -81,46 +55,47 @@ function Home() {
               className="btn btn-secondary"
               onClick={() => setShowSeverityPicker(true)}
               disabled={loading}
-              style={{ padding: '32px' }}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px',
+                gap: '12px'
+              }}
             >
-              <span style={{ fontSize: '32px' }}>💩</span>
+              <span style={{ fontSize: '64px' }}>💩</span>
               {loading ? 'Logging...' : 'Log Poop'}
             </button>
           ) : (
-            <div className="card" style={{ padding: '16px' }}>
-              <p style={{ margin: '0 0 12px 0', fontWeight: '500', textAlign: 'center' }}>How was it?</p>
-              <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '24px' }}>
+              <p style={{ margin: '0 0 24px 0', fontWeight: '500', textAlign: 'center', fontSize: '20px' }}>How was it?</p>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '12px' }}
+                  style={{ flex: 1, padding: '24px 12px', fontSize: '16px' }}
                   onClick={() => handleLogPoop('mild')}
                 >
-                  😊 Mild
+                  😊<br />Mild
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '12px' }}
+                  style={{ flex: 1, padding: '24px 12px', fontSize: '16px' }}
                   onClick={() => handleLogPoop('moderate')}
                 >
-                  😐 Moderate
+                  😐<br />Moderate
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '12px' }}
+                  style={{ flex: 1, padding: '24px 12px', fontSize: '16px' }}
                   onClick={() => handleLogPoop('severe')}
                 >
-                  😣 Severe
+                  😣<br />Severe
                 </button>
               </div>
             </div>
           )}
-        </div>
-
-        <div className="card mt-2 text-center">
-          <p className="text-muted mb-1">Today</p>
-          <p style={{ fontSize: '18px', margin: 0 }}>
-            <strong>{todayStats.meals}</strong> meals · <strong>{todayStats.poops}</strong> poops
-          </p>
         </div>
       </div>
     </div>
