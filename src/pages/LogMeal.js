@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api, { offlinePost } from '../services/api';
 
@@ -20,16 +20,6 @@ function LogMeal() {
   const [needsClarification, setNeedsClarification] = useState(false);
   const [clarificationOptions, setClarificationOptions] = useState([]);
   const [pendingMealId, setPendingMealId] = useState(null);
-
-  // Auto-open camera on mount (photo mode only)
-  useEffect(() => {
-    if (!isManualMode && fileInputRef.current) {
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        fileInputRef.current?.click();
-      }, 100);
-    }
-  }, [isManualMode]);
 
   const handleCapture = (e) => {
     const file = e.target.files[0];
@@ -250,9 +240,10 @@ function LogMeal() {
         <h1 className="page-title">Log Meal</h1>
       </div>
 
-      <div className="container">
+      <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
         <input
           type="file"
+          id="meal-photo-input"
           accept="image/*"
           capture="environment"
           onChange={handleCapture}
@@ -261,14 +252,24 @@ function LogMeal() {
         />
 
         {!preview ? (
-          <button
+          <label
+            htmlFor="meal-photo-input"
             className="btn btn-primary"
-            onClick={() => fileInputRef.current.click()}
-            style={{ padding: '48px 32px' }}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              gap: '12px',
+              cursor: 'pointer',
+              marginBottom: '80px'
+            }}
           >
-            <span style={{ fontSize: '48px' }}>📷</span>
-            Take Photo
-          </button>
+            <span style={{ fontSize: '64px' }}>📷</span>
+            Tap to Take Photo
+          </label>
         ) : (
           <>
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
