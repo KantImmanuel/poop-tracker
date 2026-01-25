@@ -7,10 +7,7 @@ function Home() {
   const [todayStats, setTodayStats] = useState({ meals: 0, poops: 0 });
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [lastPoopId, setLastPoopId] = useState(null);
-  const [showUndo, setShowUndo] = useState(false);
   const [showSeverityPicker, setShowSeverityPicker] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     fetchTodayStats();
@@ -44,57 +41,19 @@ function Home() {
     }
   };
 
-  const handleLogPoop = async (selectedSeverity = null) => {
+  const handleLogPoop = async (selectedSeverity) => {
     setLoading(true);
     setShowSeverityPicker(false);
     try {
-      const response = await offlinePost('/poops', { severity: selectedSeverity });
-      const isOffline = response.data.offline || String(response.data.id).startsWith('offline-');
-
-      setLastPoopId(isOffline ? null : response.data.id);
+      await offlinePost('/poops', { severity: selectedSeverity });
       setTodayStats(prev => ({ ...prev, poops: prev.poops + 1 }));
       setShowSuccess(true);
-
-      // Only show undo for online entries (can't undo offline)
-      if (!isOffline) {
-        setShowUndo(true);
-        setTimeout(() => {
-          setShowUndo(false);
-          setLastPoopId(null);
-        }, 10000);
-      }
-
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (error) {
       console.error('Failed to log poop:', error);
       alert('Failed to log. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUndo = async () => {
-    if (!lastPoopId || String(lastPoopId).startsWith('offline-')) return;
-    try {
-      await api.delete(`/poops/${lastPoopId}`);
-      setTodayStats(prev => ({ ...prev, poops: Math.max(0, prev.poops - 1) }));
-      setShowUndo(false);
-      setLastPoopId(null);
-    } catch (error) {
-      console.error('Failed to undo:', error);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    setAnalyzing(true);
-    try {
-      await api.post('/insights/analyze');
-      navigate('/insights');
-    } catch (error) {
-      console.error('Failed to analyze:', error);
-      alert('Failed to analyze. Please try again.');
-    } finally {
-      setAnalyzing(false);
     }
   };
 
@@ -107,16 +66,6 @@ function Home() {
       </div>
 
       <div className="container">
-        {/* Analyze button at top - immediately visible */}
-        <button
-          className="btn btn-outline mb-2"
-          onClick={handleAnalyze}
-          disabled={analyzing}
-          style={{ width: '100%' }}
-        >
-          {analyzing ? 'Analyzing...' : '🔍 Analyze My Data'}
-        </button>
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <button
             className="btn btn-primary"
@@ -163,43 +112,9 @@ function Home() {
                   😣 Severe
                 </button>
               </div>
-              <button
-                className="btn btn-secondary mt-1"
-                style={{ width: '100%' }}
-                onClick={() => handleLogPoop(null)}
-              >
-                Skip - Just Log
-              </button>
             </div>
           )}
         </div>
-
-        {showUndo && (
-          <div className="undo-container mt-2" style={{
-            background: '#fef2f2',
-            border: '2px solid #dc2626',
-            borderRadius: '12px',
-            padding: '12px',
-            animation: 'fadeIn 0.3s ease'
-          }}>
-            <p style={{ margin: '0 0 8px 0', textAlign: 'center', color: '#dc2626', fontSize: '14px' }}>
-              Poop logged! Made a mistake?
-            </p>
-            <button
-              className="btn"
-              onClick={handleUndo}
-              style={{
-                width: '100%',
-                background: '#dc2626',
-                color: 'white',
-                padding: '12px',
-                fontWeight: '600'
-              }}
-            >
-              ↩️ Undo
-            </button>
-          </div>
-        )}
 
         <div className="card mt-2 text-center">
           <p className="text-muted mb-1">Today</p>
