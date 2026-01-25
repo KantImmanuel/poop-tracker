@@ -244,12 +244,26 @@ function LogMeal() {
               <img
                 src={preview}
                 alt="Meal preview"
-                style={{ width: '100%', display: 'block' }}
+                style={{
+                  width: '100%',
+                  maxHeight: '45vh',
+                  objectFit: 'cover',
+                  display: 'block'
+                }}
               />
             </div>
 
             {!result && !loading && (
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginTop: '16px',
+                position: 'sticky',
+                bottom: '80px',
+                background: '#f5f5f5',
+                padding: '12px 0',
+                zIndex: 10
+              }}>
                 <button className="btn btn-outline" onClick={handleRetake}>
                   Retake
                 </button>
