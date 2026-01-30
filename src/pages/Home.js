@@ -1,13 +1,11 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { offlinePost } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 import cameraIcon from '../assets/camera-icon.png';
 import poopIcon from '../assets/poop-icon.png';
 
 function Home() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
   const fileInputRef = useRef(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,25 +38,7 @@ function Home() {
     <div className="page">
       {showSuccess && <div className="success-flash">Logged!</div>}
 
-      <div className="page-header" style={{ textAlign: 'center', position: 'relative' }}>
-        <button
-          onClick={logout}
-          style={{
-            position: 'absolute',
-            top: '24px',
-            right: '0',
-            background: 'none',
-            border: 'none',
-            color: '#7A5A44',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            padding: '4px 8px',
-            fontFamily: 'inherit'
-          }}
-        >
-          Sign Out
-        </button>
+      <div className="page-header" style={{ textAlign: 'center' }}>
         <h1 className="page-title">
           How's your gut<br />today?
         </h1>

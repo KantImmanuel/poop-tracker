@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function Insights() {
+  const { logout } = useAuth();
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -39,7 +41,25 @@ function Insights() {
   if (loading) {
     return (
       <div className="page">
-        <div className="page-header">
+        <div className="page-header" style={{ position: 'relative' }}>
+          <button
+            onClick={logout}
+            style={{
+              position: 'absolute',
+              top: '24px',
+              right: '0',
+              background: 'none',
+              border: 'none',
+              color: '#7A5A44',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              fontFamily: 'inherit'
+            }}
+          >
+            Sign Out
+          </button>
           <h1 className="page-title">Insights</h1>
         </div>
         <div className="loading-container">
