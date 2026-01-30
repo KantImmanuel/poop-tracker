@@ -40,9 +40,9 @@ function Home() {
     <div className="page">
       {showSuccess && <div className="success-flash">Logged!</div>}
 
-      <div className="page-header">
+      <div className="page-header" style={{ textAlign: 'center' }}>
         <h1 className="page-title" style={{ fontSize: '32px' }}>
-          How's your gut today?
+          How's your gut<br />today?
         </h1>
       </div>
 
@@ -105,6 +105,10 @@ function Home() {
               </div>
             </div>
           )}
+
+          <p style={{ textAlign: 'center', color: '#7A5A44', fontSize: '15px', fontWeight: '600', marginTop: '8px' }}>
+            3 meals logged today
+          </p>
         </div>
       </div>
     </div>
