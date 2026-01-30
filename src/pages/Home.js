@@ -60,7 +60,7 @@ function Home() {
       <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', paddingBottom: '80px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <label htmlFor="home-photo-input" className="btn btn-primary">
-            <IconBadge><img src={cameraIcon} alt="" style={{ width: '30px', height: '30px', objectFit: 'contain' }} /></IconBadge>
+            <img src={cameraIcon} alt="" style={{ width: '44px', height: '44px', objectFit: 'contain', flexShrink: 0 }} />
             Capture Food
           </label>
 
