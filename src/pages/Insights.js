@@ -21,18 +21,9 @@ function Insights() {
     }
   };
 
-  const handleAnalyze = async () => {
-    // Check minimum data requirements
-    const meals = insights?.totalMeals || 0;
-    const poops = insights?.totalPoops || 0;
-    if (meals < 3 || poops < 3) {
-      const missing = [];
-      if (meals < 3) missing.push(`${3 - meals} more meal${3 - meals === 1 ? '' : 's'}`);
-      if (poops < 3) missing.push(`${3 - poops} more poop${3 - poops === 1 ? '' : 's'}`);
-      alert(`Not enough data yet. Log ${missing.join(' and ')} to run analysis.\n\nMinimum: 3 meals + 3 poops.`);
-      return;
-    }
+  const hasEnoughData = (insights?.totalMeals || 0) >= 3 && (insights?.totalPoops || 0) >= 3;
 
+  const handleAnalyze = async () => {
     setAnalyzing(true);
     try {
       const response = await api.post('/insights/analyze');
@@ -68,7 +59,8 @@ function Insights() {
         <button
           className="btn btn-primary mb-2"
           onClick={handleAnalyze}
-          disabled={analyzing}
+          disabled={analyzing || !hasEnoughData}
+          style={{ opacity: hasEnoughData ? 1 : 0.5 }}
         >
           {analyzing ? 'Analyzing...' : 'Analyze My Data'}
         </button>
