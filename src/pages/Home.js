@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { offlinePost } from '../services/api';
+import cameraIcon from '../assets/camera-icon.png';
 
 function IconBadge({ children }) {
   return <span className="btn-icon-badge">{children}</span>;
@@ -59,7 +60,7 @@ function Home() {
       <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', paddingBottom: '80px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <label htmlFor="home-photo-input" className="btn btn-primary">
-            <IconBadge>📷</IconBadge>
+            <IconBadge><img src={cameraIcon} alt="" style={{ width: '30px', height: '30px', objectFit: 'contain' }} /></IconBadge>
             Capture Food
           </label>
 
@@ -105,10 +106,6 @@ function Home() {
               </div>
             </div>
           )}
-
-          <p style={{ textAlign: 'center', color: '#7A5A44', fontSize: '15px', fontWeight: '600', marginTop: '8px' }}>
-            3 meals logged today
-          </p>
         </div>
       </div>
     </div>
