@@ -65,7 +65,14 @@ function Insights() {
           {analyzing ? 'Analyzing...' : 'Analyze My Data'}
         </button>
 
-        {!insights || !insights.triggers?.length ? (
+        {analyzing && (
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Analyzing your data for patterns...</p>
+          </div>
+        )}
+
+        {!analyzing && (!insights || !insights.triggers?.length) ? (
           <div className="card text-center">
             <p className="text-muted">
               Keep logging meals and bowel movements. Once you have enough data,
@@ -126,7 +133,7 @@ function Insights() {
               </div>
             )}
           </>
-        )}
+        ) : null}
 
         <div className="card mt-2">
           <h3 style={{ margin: '0 0 12px 0' }}>Your Stats</h3>
