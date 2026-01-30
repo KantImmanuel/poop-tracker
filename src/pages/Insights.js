@@ -78,18 +78,22 @@ function Insights() {
               Keep logging meals and bowel movements. Once you have enough data,
               we'll identify patterns and potential trigger foods.
             </p>
-            <div style={{ fontSize: '14px', color: '#999', marginTop: '12px' }}>
-              <p style={{ margin: '0 0 8px 0', fontWeight: '500', color: '#666' }}>Minimum required:</p>
-              <p style={{ margin: '4px 0' }}>
-                {(insights?.totalMeals || 0) >= 3 ? '✓' : '○'} 3 meals logged ({insights?.totalMeals || 0}/3)
-              </p>
-              <p style={{ margin: '4px 0' }}>
-                {(insights?.totalPoops || 0) >= 3 ? '✓' : '○'} 3 poops logged ({insights?.totalPoops || 0}/3)
-              </p>
-              <p style={{ margin: '12px 0 0', color: '#999' }}>
-                Tip: 1-2 weeks of data gives the best insights.
-              </p>
-            </div>
+            {!hasEnoughData && (
+              <div style={{ fontSize: '14px', color: '#999', marginTop: '12px' }}>
+                <p style={{ margin: '0 0 8px 0', fontWeight: '500', color: '#666' }}>Minimum required:</p>
+                <p style={{ margin: '4px 0' }}>
+                  {(insights?.totalMeals || 0) >= 3 ? '✓' : '○'} 3 meals logged ({insights?.totalMeals || 0}/3)
+                </p>
+                <p style={{ margin: '4px 0' }}>
+                  {(insights?.totalPoops || 0) >= 3 ? '✓' : '○'} 3 poops logged ({insights?.totalPoops || 0}/3)
+                </p>
+              </div>
+            )}
+            <p style={{ fontSize: '14px', color: '#999', marginTop: '12px' }}>
+              {hasEnoughData
+                ? 'Tap "Analyze My Data" to identify potential trigger foods.'
+                : 'Tip: 1-2 weeks of data gives the best insights.'}
+            </p>
           </div>
         ) : (
           <>
