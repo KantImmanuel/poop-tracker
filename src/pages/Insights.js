@@ -72,72 +72,74 @@ function Insights() {
           </div>
         )}
 
-        {!analyzing && (!insights || !insights.triggers?.length) ? (
-          <div className="card text-center">
-            <p className="text-muted">
-              Keep logging meals and bowel movements. Once you have enough data,
-              we'll identify patterns and potential trigger foods.
-            </p>
-            {!hasEnoughData && (
-              <div style={{ fontSize: '14px', color: '#B0A090', marginTop: '12px' }}>
-                <p style={{ margin: '0 0 8px 0', fontWeight: '500', color: '#8B7D6B' }}>Minimum required:</p>
-                <p style={{ margin: '4px 0' }}>
-                  {(insights?.totalMeals || 0) >= 3 ? '✓' : '○'} 3 meals logged ({insights?.totalMeals || 0}/3)
-                </p>
-                <p style={{ margin: '4px 0' }}>
-                  {(insights?.totalPoops || 0) >= 3 ? '✓' : '○'} 3 poops logged ({insights?.totalPoops || 0}/3)
-                </p>
-              </div>
-            )}
-            <p style={{ fontSize: '14px', color: '#B0A090', marginTop: '12px' }}>
-              {hasEnoughData
-                ? 'Tap "Analyze My Data" to identify potential trigger foods.'
-                : 'Tip: 1-2 weeks of data gives the best insights.'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="card">
-              <h3 style={{ margin: '0 0 16px 0' }}>Potential Triggers</h3>
-              <p style={{ fontSize: '14px', color: '#8B7D6B', marginBottom: '16px' }}>
-                These foods/ingredients appear correlated with increased bowel movements:
+        {!analyzing && (
+          (!insights || !insights.triggers?.length) ? (
+            <div className="card text-center">
+              <p className="text-muted">
+                Keep logging meals and bowel movements. Once you have enough data,
+                we'll identify patterns and potential trigger foods.
               </p>
-              {insights.triggers.map((trigger, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 0',
-                    borderBottom: index < insights.triggers.length - 1 ? '1px solid #E8DDD0' : 'none'
-                  }}
-                >
-                  <span style={{ fontWeight: '500' }}>{trigger.name}</span>
-                  <span
+              {!hasEnoughData && (
+                <div style={{ fontSize: '14px', color: '#B0A090', marginTop: '12px' }}>
+                  <p style={{ margin: '0 0 8px 0', fontWeight: '500', color: '#8B7D6B' }}>Minimum required:</p>
+                  <p style={{ margin: '4px 0' }}>
+                    {(insights?.totalMeals || 0) >= 3 ? '✓' : '○'} 3 meals logged ({insights?.totalMeals || 0}/3)
+                  </p>
+                  <p style={{ margin: '4px 0' }}>
+                    {(insights?.totalPoops || 0) >= 3 ? '✓' : '○'} 3 poops logged ({insights?.totalPoops || 0}/3)
+                  </p>
+                </div>
+              )}
+              <p style={{ fontSize: '14px', color: '#B0A090', marginTop: '12px' }}>
+                {hasEnoughData
+                  ? 'Tap "Analyze My Data" to identify potential trigger foods.'
+                  : 'Tip: 1-2 weeks of data gives the best insights.'}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="card">
+                <h3 style={{ margin: '0 0 16px 0' }}>Potential Triggers</h3>
+                <p style={{ fontSize: '14px', color: '#8B7D6B', marginBottom: '16px' }}>
+                  These foods/ingredients appear correlated with increased bowel movements:
+                </p>
+                {insights.triggers.map((trigger, index) => (
+                  <div
+                    key={index}
                     style={{
-                      background: trigger.confidence > 0.7 ? '#FDEAE8' : trigger.confidence > 0.4 ? '#FFF0DB' : '#E8F0E8',
-                      color: trigger.confidence > 0.7 ? '#C44D3B' : trigger.confidence > 0.4 ? '#C47A20' : '#4A7C59',
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      fontSize: '14px',
-                      fontWeight: '500'
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 0',
+                      borderBottom: index < insights.triggers.length - 1 ? '1px solid #E8DDD0' : 'none'
                     }}
                   >
-                    {Math.round(trigger.confidence * 100)}% likely
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {insights.notes && (
-              <div className="card">
-                <h3 style={{ margin: '0 0 12px 0' }}>Notes</h3>
-                <p style={{ margin: 0, color: '#8B7D6B' }}>{insights.notes}</p>
+                    <span style={{ fontWeight: '500' }}>{trigger.name}</span>
+                    <span
+                      style={{
+                        background: trigger.confidence > 0.7 ? '#FDEAE8' : trigger.confidence > 0.4 ? '#FFF0DB' : '#E8F0E8',
+                        color: trigger.confidence > 0.7 ? '#C44D3B' : trigger.confidence > 0.4 ? '#C47A20' : '#4A7C59',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      {Math.round(trigger.confidence * 100)}% likely
+                    </span>
+                  </div>
+                ))}
               </div>
-            )}
-          </>
-        ) : null}
+
+              {insights.notes && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 12px 0' }}>Notes</h3>
+                  <p style={{ margin: 0, color: '#8B7D6B' }}>{insights.notes}</p>
+                </div>
+              )}
+            </>
+          )
+        )}
 
         <div className="card mt-2">
           <h3 style={{ margin: '0 0 12px 0' }}>Your Stats</h3>
