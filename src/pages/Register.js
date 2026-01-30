@@ -102,7 +102,7 @@ function Register() {
 
         <p className="text-center mt-2">
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#7FA84E', fontWeight: '500' }}>
+          <Link to="/login" style={{ color: '#7E8B47', fontWeight: '500' }}>
             Log in
           </Link>
         </p>

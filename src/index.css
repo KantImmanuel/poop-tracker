@@ -47,6 +47,7 @@ body {
   cursor: pointer;
   font-family: inherit;
   position: relative;
+  overflow: hidden;
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -56,39 +57,65 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #8FB85C 0%, #6E9644 100%);
+  background: linear-gradient(180deg, #909852 0%, #858D4C 50%, #7A8346 100%);
   color: white;
-  border: 2px solid #6A8E3F;
+  border: 2px solid #717A40;
+  border-bottom: 4px solid #6A7340;
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.22),
-    0 10px 30px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 6px 20px rgba(113, 122, 64, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.06);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 26px 26px 50% 50%;
+  pointer-events: none;
 }
 
 .btn-primary:active {
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.1),
-    0 4px 12px rgba(0, 0, 0, 0.14),
-    0 1px 2px rgba(0, 0, 0, 0.05);
+    inset 0 3px 6px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(113, 122, 64, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .btn-secondary {
-  background: linear-gradient(180deg, #F09A4B 0%, #CC7733 100%);
+  background: linear-gradient(180deg, #E8944A 0%, #DE8840 50%, #D07C38 100%);
   color: white;
-  border: 2px solid #B96C2E;
+  border: 2px solid #BA6E30;
+  border-bottom: 4px solid #A8642C;
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.25),
-    0 10px 30px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 6px 20px rgba(186, 110, 48, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.06);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.btn-secondary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 26px 26px 50% 50%;
+  pointer-events: none;
 }
 
 .btn-secondary:active {
   box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.1),
-    0 4px 12px rgba(0, 0, 0, 0.14),
-    0 1px 2px rgba(0, 0, 0, 0.05);
+    inset 0 3px 6px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(186, 110, 48, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .btn-outline {
@@ -119,16 +146,18 @@ body {
 
 /* ── Icon badge inside buttons ── */
 .btn-icon-badge {
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  font-size: 26px;
+  line-height: 1;
 }
 
 /* ── Floating pill bottom nav ── */
@@ -180,8 +209,8 @@ body {
 }
 
 .nav-item.active {
-  color: #7FA84E;
-  background: rgba(127, 168, 78, 0.12);
+  color: #7E8B47;
+  background: rgba(126, 139, 71, 0.12);
 }
 
 .nav-icon {
@@ -222,8 +251,8 @@ body {
 
 .input:focus {
   outline: none;
-  border-color: #7FA84E;
-  box-shadow: 0 0 0 3px rgba(127, 168, 78, 0.15);
+  border-color: #7E8B47;
+  box-shadow: 0 0 0 3px rgba(126, 139, 71, 0.15);
 }
 
 .form-group {
@@ -283,14 +312,14 @@ body {
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, #8FB85C 0%, #6E9644 100%);
+  background: linear-gradient(180deg, #919B54 0%, #6C7B3B 100%);
   color: white;
   padding: 14px 32px;
   border-radius: 50px;
   font-weight: 800;
   font-size: 16px;
   z-index: 1000;
-  box-shadow: 0 8px 24px rgba(127, 168, 78, 0.3);
+  box-shadow: 0 8px 24px rgba(108, 123, 59, 0.3);
   animation: fadeInOut 2s ease-in-out;
 }
 
@@ -306,7 +335,7 @@ body {
   width: 40px;
   height: 40px;
   border: 4px solid #E8D9C8;
-  border-top-color: #7FA84E;
+  border-top-color: #7E8B47;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
