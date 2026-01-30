@@ -12,10 +12,8 @@ function Home() {
   const handlePhotoCapture = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Navigate to log-meal with the captured image
       navigate('/log-meal', { state: { capturedImage: file } });
     }
-    // Reset input so same file can be selected again
     e.target.value = '';
   };
 
@@ -38,8 +36,10 @@ function Home() {
     <div className="page">
       {showSuccess && <div className="success-flash">Logged!</div>}
 
-      <div className="page-header" style={{ textAlign: 'left', maxWidth: '480px', margin: '0 auto', padding: '32px 16px 16px' }}>
-        <h1 className="page-title" style={{ fontSize: '32px' }}>How's your gut today?</h1>
+      <div className="page-header">
+        <h1 className="page-title" style={{ fontSize: '32px' }}>
+          How's your gut today?
+        </h1>
       </div>
 
       <input
@@ -54,16 +54,8 @@ function Home() {
 
       <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', paddingBottom: '80px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <label
-            htmlFor="home-photo-input"
-            className="btn btn-primary"
-            style={{
-              padding: '18px 28px',
-              fontSize: '20px',
-              cursor: 'pointer'
-            }}
-          >
-            <span style={{ fontSize: '24px' }}>📷</span>
+          <label htmlFor="home-photo-input" className="btn btn-primary">
+            <span style={{ fontSize: '28px' }}>📷</span>
             Capture Food
           </label>
 
@@ -72,21 +64,19 @@ function Home() {
               className="btn btn-secondary"
               onClick={() => setShowSeverityPicker(true)}
               disabled={loading}
-              style={{
-                padding: '18px 28px',
-                fontSize: '20px'
-              }}
             >
-              <span style={{ fontSize: '24px' }}>💩</span>
+              <span style={{ fontSize: '28px' }}>💩</span>
               {loading ? 'Logging...' : 'Log Poop'}
             </button>
           ) : (
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '24px' }}>
-              <p style={{ margin: '0 0 20px 0', fontWeight: '700', textAlign: 'center', fontSize: '20px', color: '#3D3229' }}>How was it?</p>
+            <div className="card" style={{ padding: '24px' }}>
+              <p style={{ margin: '0 0 20px 0', fontWeight: '700', textAlign: 'center', fontSize: '20px', color: '#3D2E22' }}>
+                How was it?
+              </p>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '18px 12px', fontSize: '15px', flexDirection: 'column', gap: '6px' }}
+                  style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
                   onClick={() => handleLogPoop('mild')}
                 >
                   <span style={{ fontSize: '28px' }}>😊</span>
@@ -94,7 +84,7 @@ function Home() {
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '18px 12px', fontSize: '15px', flexDirection: 'column', gap: '6px' }}
+                  style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
                   onClick={() => handleLogPoop('moderate')}
                 >
                   <span style={{ fontSize: '28px' }}>😐</span>
@@ -102,7 +92,7 @@ function Home() {
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '18px 12px', fontSize: '15px', flexDirection: 'column', gap: '6px' }}
+                  style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
                   onClick={() => handleLogPoop('severe')}
                 >
                   <span style={{ fontSize: '28px' }}>😣</span>
