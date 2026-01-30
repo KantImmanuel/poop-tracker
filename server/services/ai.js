@@ -10,6 +10,7 @@
  */
 
 const fs = require('fs');
+const sharp = require('sharp');
 
 // Determine which AI providers to use
 const USE_GOOGLE_VISION = !!process.env.GOOGLE_CLOUD_API_KEY;
@@ -43,6 +44,15 @@ if (USE_OPENAI) {
 
 if (!USE_GOOGLE_VISION && !USE_CLAUDE && !USE_OPENAI) {
   console.log('AI Service: Using mock responses (set GOOGLE_CLOUD_API_KEY + ANTHROPIC_API_KEY for real AI)');
+}
+
+// Compress image to stay under Claude's 5 MB base64 limit (~3.75 MB raw)
+async function compressForAI(imagePath) {
+  const buffer = await sharp(imagePath)
+    .resize(1536, 1536, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+  return { base64: buffer.toString('base64'), mediaType: 'image/jpeg' };
 }
 
 // Food image analysis
@@ -107,8 +117,7 @@ async function analyzeWithGoogleVisionAndClaude(imagePath) {
     const logos = (result.logoAnnotations || []).map(l => l.description);
 
     // Step 2: Use Claude to interpret the vision results and extract food details
-    const ext = imagePath.split('.').pop().toLowerCase();
-    const mediaType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const compressed = await compressForAI(imagePath);
 
     const claudeResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -121,8 +130,8 @@ async function analyzeWithGoogleVisionAndClaude(imagePath) {
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: mediaType,
-                data: base64Image
+                media_type: compressed.mediaType,
+                data: compressed.base64
               }
             },
             {
@@ -189,11 +198,7 @@ Return ONLY valid JSON:
 // Claude-only implementation (fallback)
 async function analyzeWithClaude(imagePath) {
   try {
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-
-    const ext = imagePath.split('.').pop().toLowerCase();
-    const mediaType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const compressed = await compressForAI(imagePath);
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -206,8 +211,8 @@ async function analyzeWithClaude(imagePath) {
               type: 'image',
               source: {
                 type: 'base64',
-                media_type: mediaType,
-                data: base64Image
+                media_type: compressed.mediaType,
+                data: compressed.base64
               }
             },
             {
@@ -262,11 +267,7 @@ Return ONLY valid JSON:
 // OpenAI implementation (secondary fallback)
 async function analyzeWithOpenAI(imagePath) {
   try {
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-
-    const ext = imagePath.split('.').pop().toLowerCase();
-    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const compressed = await compressForAI(imagePath);
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -281,7 +282,7 @@ async function analyzeWithOpenAI(imagePath) {
             {
               type: 'image_url',
               image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
+                url: `data:${compressed.mediaType};base64,${compressed.base64}`,
                 detail: 'high'
               }
             }
