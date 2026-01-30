@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import BottomNav from './components/BottomNav';
 import OfflineIndicator from './components/OfflineIndicator';
 import Home from './pages/Home';
+import Landing from './pages/Landing';
 import LogMeal from './pages/LogMeal';
 import History from './pages/History';
 import Insights from './pages/Insights';
@@ -13,6 +14,29 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { initDB } from './services/offlineStorage';
 import { setupOnlineListener } from './services/syncService';
 import './App.css';
+
+function HomeOrLanding() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Landing />;
+  }
+
+  return (
+    <>
+      <Home />
+      <BottomNav />
+    </>
+  );
+}
 
 function App() {
   useEffect(() => {
@@ -30,12 +54,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route
             path="/"
-            element={
-              <ProtectedRoute>
-                <Home />
-                <BottomNav />
-              </ProtectedRoute>
-            }
+            element={<HomeOrLanding />}
           />
           <Route
             path="/log-meal"

@@ -337,3 +337,308 @@ body {
   gap: 16px;
   color: #7A5A44;
 }
+
+/* ── Landing page ── */
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-hero {
+  text-align: center;
+  padding: 60px 24px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.landing-hero-emoji {
+  font-size: 56px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.landing-hero-title {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #4A2E1F;
+  margin: 0 0 8px;
+}
+
+.landing-hero-accent {
+  color: #7E8B47;
+}
+
+.landing-hero-sub {
+  color: #7A5A44;
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0 0 28px;
+}
+
+.landing-cta {
+  display: flex;
+  max-width: 320px;
+  margin: 0 auto;
+  text-decoration: none;
+}
+
+.landing-hero-signin {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #7A5A44;
+}
+
+.landing-link {
+  color: #7E8B47;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.landing-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Sections ── */
+.landing-section {
+  padding: 40px 24px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.landing-section-title {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #4A2E1F;
+  text-align: center;
+  margin: 0 0 28px;
+}
+
+/* ── How it works steps ── */
+.landing-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.landing-step {
+  background: white;
+  border-radius: 24px;
+  padding: 28px 24px;
+  text-align: center;
+  position: relative;
+  box-shadow:
+    0 4px 20px rgba(74, 46, 31, 0.06),
+    0 1px 4px rgba(0, 0, 0, 0.02);
+}
+
+.landing-step-num {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #7E8B47;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-step-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.landing-step h3 {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #4A2E1F;
+  margin: 0 0 6px;
+}
+
+.landing-step p {
+  color: #7A5A44;
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Screenshots carousel ── */
+.landing-screenshots {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 0 16px;
+  scrollbar-width: none;
+}
+
+.landing-screenshots::-webkit-scrollbar {
+  display: none;
+}
+
+.landing-screenshot-frame {
+  flex-shrink: 0;
+  width: 220px;
+  scroll-snap-align: center;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 32px rgba(74, 46, 31, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #1a1a1a;
+}
+
+.landing-screenshot-frame img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── Example insight card ── */
+.landing-insight-card {
+  background: white;
+  border-radius: 24px;
+  padding: 28px 24px;
+  max-width: 400px;
+  margin: 0 auto;
+  box-shadow:
+    0 4px 20px rgba(74, 46, 31, 0.06),
+    0 1px 4px rgba(0, 0, 0, 0.02);
+}
+
+.landing-insight-eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7E8B47;
+  margin: 0 0 8px;
+}
+
+.landing-insight-title {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #4A2E1F;
+  margin: 0 0 16px;
+}
+
+.landing-insight-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: #E8D9C8;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.landing-insight-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #7E8B47 0%, #A3B05C 100%);
+}
+
+.landing-insight-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.landing-insight-badge {
+  background: #F5ECDB;
+  color: #B87A2E;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.landing-insight-disclaimer {
+  font-size: 12px;
+  color: #7A5A44;
+  font-style: italic;
+}
+
+/* ── Bottom CTA ── */
+.landing-bottom-cta {
+  text-align: center;
+  padding-top: 20px;
+  padding-bottom: 48px;
+}
+
+.landing-bottom-cta .landing-hero-sub {
+  margin-bottom: 24px;
+}
+
+/* ── Footer ── */
+.landing-footer {
+  text-align: center;
+  padding: 24px;
+  border-top: 1px solid #E8D9C8;
+}
+
+.landing-footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.landing-footer-links a {
+  color: #7A5A44;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.landing-footer-links a:hover {
+  color: #4A2E1F;
+}
+
+.landing-footer-brand {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #E8D9C8;
+  margin: 0;
+}
+
+/* ── Desktop: steps side-by-side, screenshots row ── */
+@media (min-width: 640px) {
+  .landing-steps {
+    flex-direction: row;
+  }
+
+  .landing-step {
+    flex: 1;
+  }
+
+  .landing-screenshots {
+    justify-content: center;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+
+  .landing-screenshot-frame {
+    width: 200px;
+  }
+
+  .landing-hero-title {
+    font-size: 44px;
+  }
+}

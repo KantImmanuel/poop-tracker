@@ -164,6 +164,14 @@ async function captureScreenshots(baseUrl) {
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
   });
 
+  // ── 0. Landing page (logged-out) ────────────────────────────────────────
+  console.log('Capturing: landing.png');
+  const landingPage = await context.newPage();
+  await landingPage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await landingPage.waitForTimeout(500);
+  await landingPage.screenshot({ path: path.join(OUT, 'landing.png'), fullPage: true });
+  await landingPage.close();
+
   // ── 1. Home screen ──────────────────────────────────────────────────────
   console.log('Capturing: home.png');
   const homePage = await context.newPage();
@@ -175,18 +183,7 @@ async function captureScreenshots(baseUrl) {
   await homePage.screenshot({ path: path.join(OUT, 'home.png'), fullPage: false });
   await homePage.close();
 
-  // ── 2. Capture Food screen (photo prompt) ───────────────────────────────
-  console.log('Capturing: capture-food.png');
-  const capturePage = await context.newPage();
-  await interceptAPIs(capturePage);
-  await capturePage.goto(baseUrl, { waitUntil: 'networkidle' });
-  await injectAuth(capturePage);
-  await capturePage.goto(`${baseUrl}/log-meal`, { waitUntil: 'networkidle' });
-  await capturePage.waitForTimeout(500);
-  await capturePage.screenshot({ path: path.join(OUT, 'capture-food.png'), fullPage: false });
-  await capturePage.close();
-
-  // ── 3. Food Logged confirmation ─────────────────────────────────────────
+  // ── 2. Food Logged confirmation ─────────────────────────────────────────
   console.log('Capturing: food-logged.png');
   const loggedPage = await context.newPage();
   await interceptAPIs(loggedPage);
