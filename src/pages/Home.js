@@ -2,10 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { offlinePost } from '../services/api';
 import cameraIcon from '../assets/camera-icon.png';
-
-function IconBadge({ children }) {
-  return <span className="btn-icon-badge">{children}</span>;
-}
+import poopIcon from '../assets/poop-icon.png';
 
 function Home() {
   const navigate = useNavigate();
@@ -70,7 +67,7 @@ function Home() {
               onClick={() => setShowSeverityPicker(true)}
               disabled={loading}
             >
-              <IconBadge>💩</IconBadge>
+              <img src={poopIcon} alt="" style={{ width: '44px', height: '44px', objectFit: 'contain', flexShrink: 0 }} />
               {loading ? 'Logging...' : 'Log Poop'}
             </button>
           ) : (
