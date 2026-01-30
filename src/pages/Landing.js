@@ -90,9 +90,9 @@ function Landing() {
       {/* ── Footer ── */}
       <footer className="landing-footer">
         <div className="landing-footer-links">
-          <a href="#privacy">Privacy</a>
-          <a href="#terms">Terms</a>
-          <a href="#contact">Contact</a>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
+          <Link to="/contact">Contact</Link>
         </div>
         <p className="landing-footer-brand">Gut Feeling</p>
       </footer>

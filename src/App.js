@@ -10,6 +10,9 @@ import History from './pages/History';
 import Insights from './pages/Insights';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Contact from './pages/Contact';
 import ProtectedRoute from './components/ProtectedRoute';
 import { initDB } from './services/offlineStorage';
 import { setupOnlineListener } from './services/syncService';
@@ -52,6 +55,9 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/contact" element={<Contact />} />
           <Route
             path="/"
             element={<HomeOrLanding />}
