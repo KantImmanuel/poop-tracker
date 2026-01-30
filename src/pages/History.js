@@ -1,9 +1,53 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 
+const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+
+function getWeekDays() {
+  const today = new Date();
+  const day = today.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + i);
+    days.push(date);
+  }
+  return days;
+}
+
+function getMonthGrid(year, month) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    cells.push(new Date(year, month, d));
+  }
+  return cells;
+}
+
+function isSameDay(a, b) {
+  if (!a || !b) return false;
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+}
+
 function History() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [calendarExpanded, setCalendarExpanded] = useState(false);
+
+  const today = new Date();
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [viewYear, setViewYear] = useState(today.getFullYear());
 
   useEffect(() => {
     fetchHistory();
@@ -31,11 +75,11 @@ function History() {
 
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
+    const todayDate = new Date();
+    const yesterday = new Date(todayDate);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) {
+    if (date.toDateString() === todayDate.toDateString()) {
       return 'Today';
     } else if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
@@ -57,7 +101,45 @@ function History() {
     return groups;
   };
 
-  const grouped = groupByDate(entries);
+  const handleDayClick = (date) => {
+    if (selectedDate && isSameDay(selectedDate, date)) {
+      setSelectedDate(null);
+    } else {
+      setSelectedDate(date);
+    }
+  };
+
+  const handleMonthDayClick = (date) => {
+    if (!date) return;
+    setSelectedDate(date);
+    setCalendarExpanded(false);
+  };
+
+  const prevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear(viewYear - 1);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear(viewYear + 1);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  };
+
+  const filteredEntries = selectedDate
+    ? entries.filter(e => isSameDay(new Date(e.timestamp), selectedDate))
+    : entries;
+
+  const grouped = groupByDate(filteredEntries);
+  const weekDays = getWeekDays();
+  const monthGrid = getMonthGrid(viewYear, viewMonth);
 
   if (loading) {
     return (
@@ -79,9 +161,80 @@ function History() {
       </div>
 
       <div className="container">
-        {entries.length === 0 ? (
+        {/* ── Week strip ── */}
+        <div className="history-week-strip">
+          <div className="history-week-days">
+            {weekDays.map((date, i) => {
+              const isSelected = isSameDay(selectedDate, date);
+              const isToday = isSameDay(today, date);
+              return (
+                <button
+                  key={i}
+                  className={`history-day${isSelected ? ' selected' : ''}${isToday && !isSelected ? ' today' : ''}`}
+                  onClick={() => handleDayClick(date)}
+                >
+                  <span className="history-day-label">{DAY_LABELS[i]}</span>
+                  <span className="history-day-num">{date.getDate()}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className={`history-calendar-toggle${calendarExpanded ? ' active' : ''}`}
+            onClick={() => setCalendarExpanded(!calendarExpanded)}
+            aria-label="Expand calendar"
+          >
+            <span style={{ fontSize: '18px' }}>&#x1F4C5;</span>
+          </button>
+        </div>
+
+        {/* ── Expanded month calendar ── */}
+        {calendarExpanded && (
+          <div className="history-month-calendar">
+            <div className="history-month-header">
+              <button className="history-month-arrow" onClick={prevMonth}>&lsaquo;</button>
+              <span className="history-month-title">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+              <button className="history-month-arrow" onClick={nextMonth}>&rsaquo;</button>
+            </div>
+            <div className="history-month-labels">
+              {DAY_LABELS.map((l, i) => (
+                <span key={i}>{l}</span>
+              ))}
+            </div>
+            <div className="history-month-grid">
+              {monthGrid.map((date, i) => {
+                if (!date) return <span key={i} className="history-month-cell empty" />;
+                const isSelected = isSameDay(selectedDate, date);
+                const isToday = isSameDay(today, date);
+                return (
+                  <button
+                    key={i}
+                    className={`history-month-cell${isSelected ? ' selected' : ''}${isToday && !isSelected ? ' today' : ''}`}
+                    onClick={() => handleMonthDayClick(date)}
+                  >
+                    {date.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {selectedDate && (
+          <button
+            className="history-clear-filter"
+            onClick={() => setSelectedDate(null)}
+          >
+            Show all &times;
+          </button>
+        )}
+
+        {/* ── Entry list ── */}
+        {filteredEntries.length === 0 ? (
           <div className="card text-center">
-            <p className="text-muted">No entries yet. Start logging!</p>
+            <p className="text-muted">
+              {selectedDate ? 'No entries on this day.' : 'No entries yet. Start logging!'}
+            </p>
           </div>
         ) : (
           Object.entries(grouped).map(([date, items]) => (
