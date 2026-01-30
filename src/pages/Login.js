@@ -73,6 +73,12 @@ function Login() {
             >
               {loading ? 'Logging in...' : 'Log In'}
             </button>
+
+            <p style={{ textAlign: 'center', marginTop: '12px', marginBottom: 0 }}>
+              <Link to="/contact" style={{ color: '#7E8B47', fontWeight: '500', fontSize: '14px' }}>
+                Forgot password?
+              </Link>
+            </p>
           </form>
         </div>
 
