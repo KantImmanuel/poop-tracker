@@ -30,14 +30,14 @@ function Login() {
       <div className="container">
         <div className="text-center mb-3">
           <span style={{ fontSize: '64px' }}>🍽️💩</span>
-          <h1 style={{ margin: '16px 0 8px', color: '#3D3229' }}>Gut Feeling</h1>
+          <h1 style={{ margin: '16px 0 8px', color: '#4A2E1F' }}>Gut Feeling</h1>
           <p className="text-muted">Track meals, find triggers</p>
         </div>
 
         <div className="card">
           <form onSubmit={handleSubmit}>
             {error && (
-              <div style={{ background: '#FDEAE8', color: '#C44D3B', padding: '12px', borderRadius: '12px', marginBottom: '16px' }}>
+              <div style={{ background: '#F5E3E0', color: '#B8564A', padding: '12px', borderRadius: '12px', marginBottom: '16px' }}>
                 {error}
               </div>
             )}
@@ -78,7 +78,7 @@ function Login() {
 
         <p className="text-center mt-2">
           Don't have an account?{' '}
-          <Link to="/register" style={{ color: '#4A7C59', fontWeight: '500' }}>
+          <Link to="/register" style={{ color: '#7FA84E', fontWeight: '500' }}>
             Sign up
           </Link>
         </p>

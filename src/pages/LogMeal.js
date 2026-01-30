@@ -277,7 +277,7 @@ function LogMeal() {
               <span style={{ fontSize: '24px' }}>📷</span>
               Tap to Take Photo
             </label>
-            <p style={{ fontSize: '14px', color: '#B0A090', margin: 0 }}>No calorie counting. No judgment.</p>
+            <p style={{ fontSize: '14px', color: '#7A5A44', margin: 0 }}>No calorie counting. No judgment.</p>
           </div>
         ) : (
           <>
@@ -301,7 +301,7 @@ function LogMeal() {
                 marginTop: '16px',
                 position: 'sticky',
                 bottom: '80px',
-                background: '#FFF8F0',
+                background: '#FFF3E3',
                 padding: '12px 0',
                 zIndex: 10
               }}>
@@ -326,13 +326,13 @@ function LogMeal() {
                 <div className="card mt-2">
                   <h3 style={{ margin: '0 0 16px 0' }}>Food Logged!</h3>
                   {result.foods?.map((food, index) => (
-                    <div key={index} style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: index < result.foods.length - 1 ? '1px solid #E8DDD0' : 'none' }}>
+                    <div key={index} style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: index < result.foods.length - 1 ? '1px solid #E8D9C8' : 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#3D3229' }}>{food.name}</p>
+                        <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#4A2E1F' }}>{food.name}</p>
                         {food.confidence && food.confidence < 0.7 && (
                           <span style={{
-                            background: '#FFF0DB',
-                            color: '#C47A20',
+                            background: '#F5ECDB',
+                            color: '#B87A2E',
                             padding: '2px 8px',
                             borderRadius: '12px',
                             fontSize: '12px'
@@ -342,12 +342,12 @@ function LogMeal() {
                         )}
                       </div>
                       {food.ingredients && (
-                        <p style={{ margin: '0', fontSize: '14px', color: '#8B7D6B' }}>
+                        <p style={{ margin: '0', fontSize: '14px', color: '#7A5A44' }}>
                           {Array.isArray(food.ingredients) ? food.ingredients.join(', ') : food.ingredients}
                         </p>
                       )}
                       {food.restaurant && (
-                        <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#B0A090' }}>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#7A5A44' }}>
                           📍 {food.restaurant}
                         </p>
                       )}
@@ -355,7 +355,7 @@ function LogMeal() {
                       {/* Clarification options for uncertain items */}
                       {needsClarification && food.confidence && food.confidence < 0.7 && food.alternatives && (
                         <div style={{ marginTop: '8px' }}>
-                          <p style={{ fontSize: '12px', color: '#8B7D6B', margin: '0 0 8px 0' }}>
+                          <p style={{ fontSize: '12px', color: '#7A5A44', margin: '0 0 8px 0' }}>
                             Did you mean:
                           </p>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

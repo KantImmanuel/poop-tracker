@@ -93,7 +93,7 @@ function Home() {
             </button>
           ) : (
             <div className="card" style={{ padding: '24px' }}>
-              <p style={{ margin: '0 0 20px 0', fontWeight: '700', textAlign: 'center', fontSize: '20px', color: '#3D2E22' }}>
+              <p style={{ margin: '0 0 20px 0', fontWeight: '700', textAlign: 'center', fontSize: '20px', color: '#4A2E1F' }}>
                 How was it?
               </p>
               <div style={{ display: 'flex', gap: '12px' }}>
