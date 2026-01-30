@@ -72,7 +72,9 @@ router.post('/analyze', authenticateToken, async (req, res) => {
     }));
 
     const poopData = poops.map(p => ({
-      timestamp: p.timestamp
+      timestamp: p.timestamp,
+      severity: p.severity,
+      symptoms: p.symptoms ? JSON.parse(p.symptoms) : []
     }));
 
     // Run AI correlation analysis

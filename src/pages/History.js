@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 
+const SYMPTOM_EMOJI = {
+  bloating: '🫧', cramps: '🤕', gas: '💨',
+  nausea: '🤢', urgency: '🏃', fatigue: '😴'
+};
+const SYMPTOM_OPTIONS = Object.entries(SYMPTOM_EMOJI).map(([val, emoji]) => ({ val, emoji }));
+
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
@@ -48,7 +54,7 @@ function History() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editSeverity, setEditSeverity] = useState(null);
-  const [editFoods, setEditFoods] = useState([]);
+  const [editSymptoms, setEditSymptoms] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
 
   const today = new Date();
@@ -165,37 +171,35 @@ function History() {
     }
   };
 
+  const parseSymptoms = (item) => {
+    if (!item.symptoms) return [];
+    if (Array.isArray(item.symptoms)) return item.symptoms;
+    try { return JSON.parse(item.symptoms); } catch { return []; }
+  };
+
+  const toggleEditSymptom = (symptom) => {
+    setEditSymptoms(prev =>
+      prev.includes(symptom) ? prev.filter(s => s !== symptom) : [...prev, symptom]
+    );
+  };
+
   const startEdit = (item) => {
     setEditingId(item.id);
     if (item.type === 'poop') {
       setEditSeverity(item.severity || null);
-    } else {
-      setEditFoods(item.foods?.map(f => ({ id: f.id, name: f.name })) || []);
+      setEditSymptoms(parseSymptoms(item));
     }
   };
 
   const savePoopEdit = async (item) => {
     setActionLoading(true);
     try {
-      await api.put(`/poops/${item.id}`, { severity: editSeverity });
+      await api.put(`/poops/${item.id}`, {
+        severity: editSeverity,
+        symptoms: editSymptoms
+      });
       setEntries(prev => prev.map(e =>
-        e.id === item.id ? { ...e, severity: editSeverity } : e
-      ));
-      setEditingId(null);
-      setExpandedId(null);
-    } catch (error) {
-      console.error('Update failed:', error);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const saveMealEdit = async (item) => {
-    setActionLoading(true);
-    try {
-      const res = await api.put(`/meals/${item.id}`, { foods: editFoods });
-      setEntries(prev => prev.map(e =>
-        e.id === item.id ? { ...e, foods: res.data.foods } : e
+        e.id === item.id ? { ...e, severity: editSeverity, symptoms: JSON.stringify(editSymptoms) } : e
       ));
       setEditingId(null);
       setExpandedId(null);
@@ -356,6 +360,15 @@ function History() {
                             <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#7A5A44' }}>
                               {formatTime(item.timestamp)}
                             </p>
+                            {parseSymptoms(item).length > 0 && (
+                              <div className="history-symptom-tags">
+                                {parseSymptoms(item).map(s => (
+                                  <span key={s} className="history-symptom-tag">
+                                    {SYMPTOM_EMOJI[s]} {s}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -363,12 +376,14 @@ function History() {
 
                     {isExpanded && !isEditing && !isConfirming && (
                       <div className="history-card-actions" onClick={e => e.stopPropagation()}>
-                        <button
-                          className="history-action-btn"
-                          onClick={() => startEdit(item)}
-                        >
-                          Edit
-                        </button>
+                        {item.type === 'poop' && (
+                          <button
+                            className="history-action-btn"
+                            onClick={() => startEdit(item)}
+                          >
+                            Edit
+                          </button>
+                        )}
                         <button
                           className="history-action-btn delete"
                           onClick={() => setConfirmDeleteId(item.id)}
@@ -412,6 +427,18 @@ function History() {
                             {s.label}
                           </button>
                         ))}
+                        <p style={{ width: '100%', margin: '8px 0 4px', fontSize: '13px', fontWeight: '600', color: '#7A5A44' }}>Symptoms</p>
+                        <div className="symptom-chips" style={{ width: '100%' }}>
+                          {SYMPTOM_OPTIONS.map(s => (
+                            <button
+                              key={s.val}
+                              className={`symptom-chip${editSymptoms.includes(s.val) ? ' active' : ''}`}
+                              onClick={() => toggleEditSymptom(s.val)}
+                            >
+                              <span>{s.emoji}</span> {s.val}
+                            </button>
+                          ))}
+                        </div>
                         <div className="history-edit-btns">
                           <button
                             className="history-action-btn save"
@@ -425,32 +452,6 @@ function History() {
                       </div>
                     )}
 
-                    {isEditing && item.type === 'meal' && (
-                      <div className="history-edit-foods" onClick={e => e.stopPropagation()}>
-                        {editFoods.map((f, fi) => (
-                          <input
-                            key={f.id}
-                            className="history-edit-input"
-                            value={f.name}
-                            onChange={e => {
-                              const updated = [...editFoods];
-                              updated[fi] = { ...updated[fi], name: e.target.value };
-                              setEditFoods(updated);
-                            }}
-                          />
-                        ))}
-                        <div className="history-edit-btns">
-                          <button
-                            className="history-action-btn save"
-                            onClick={() => saveMealEdit(item)}
-                            disabled={actionLoading}
-                          >
-                            {actionLoading ? '...' : 'Save'}
-                          </button>
-                          <button className="history-action-btn" onClick={cancelEdit}>Cancel</button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}

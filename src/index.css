@@ -951,3 +951,59 @@ body {
   gap: 8px;
   margin-top: 4px;
 }
+
+/* ── Symptom chips ── */
+.symptom-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.symptom-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid #E8D9C8;
+  border-radius: 20px;
+  background: white;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A2E1F;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.symptom-chip.active {
+  background: #7E8B47;
+  border-color: #7E8B47;
+  color: white;
+}
+
+.btn-outline-active {
+  background: #7E8B47 !important;
+  color: white !important;
+  border-color: #7E8B47 !important;
+}
+
+/* ── History symptom tags ── */
+.history-symptom-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.history-symptom-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #F2E6D8;
+  font-size: 11px;
+  font-weight: 600;
+  color: #7A5A44;
+  text-transform: capitalize;
+}

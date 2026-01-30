@@ -337,13 +337,14 @@ ${JSON.stringify(meals.map(m => ({
   foods: m.foods.map(f => ({ name: f.name, ingredients: f.ingredients }))
 })), null, 2)}
 
-BOWEL MOVEMENTS (timestamps and severity):
-${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity })), null, 2)}
+BOWEL MOVEMENTS (timestamps, severity, and symptoms):
+${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity, symptoms: p.symptoms || [] })), null, 2)}
 
-Look for correlations between specific foods/ingredients and bowel movements that occur within 2-24 hours after eating. Consider:
+Look for correlations between specific foods/ingredients and bowel movements/symptoms that occur within 2-24 hours after eating. Consider:
 - Frequency of ingredient consumption before bowel movements
 - Time patterns between eating and symptoms
 - Severity patterns (do certain foods cause more severe symptoms?)
+- Symptom patterns (do certain foods trigger specific symptoms like bloating, cramps, gas, nausea, urgency, or fatigue?)
 - Known IBS trigger categories (FODMAPs, dairy, gluten, caffeine, etc.)
 
 Return ONLY valid JSON:
@@ -358,7 +359,7 @@ Return ONLY valid JSON:
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      system: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers. Focus on common triggers like FODMAPs (garlic, onion, wheat, dairy, certain fruits), caffeine, alcohol, fatty foods, and artificial sweeteners. Pay attention to severity patterns.',
+      system: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers. Focus on common triggers like FODMAPs (garlic, onion, wheat, dairy, certain fruits), caffeine, alcohol, fatty foods, and artificial sweeteners. Pay attention to severity patterns and symptom correlations (bloating, cramps, gas, nausea, urgency, fatigue).',
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -378,7 +379,7 @@ async function analyzeCorrelationsWithOpenAI(meals, poops) {
 
 MEALS: ${JSON.stringify(meals.map(m => ({ timestamp: m.timestamp, foods: m.foods.map(f => ({ name: f.name, ingredients: f.ingredients })) })))}
 
-BOWEL MOVEMENTS: ${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity })))}`;
+BOWEL MOVEMENTS: ${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity, symptoms: p.symptoms || [] })))}`;
 
   try {
     const response = await openai.chat.completions.create({

@@ -4,12 +4,32 @@ import { offlinePost } from '../services/api';
 import cameraIcon from '../assets/camera-icon.png';
 import poopIcon from '../assets/poop-icon.png';
 
+const SYMPTOM_OPTIONS = [
+  { val: 'bloating', emoji: '🫧', label: 'Bloating' },
+  { val: 'cramps', emoji: '🤕', label: 'Cramps' },
+  { val: 'gas', emoji: '💨', label: 'Gas' },
+  { val: 'nausea', emoji: '🤢', label: 'Nausea' },
+  { val: 'urgency', emoji: '🏃', label: 'Urgency' },
+  { val: 'fatigue', emoji: '😴', label: 'Fatigue' },
+];
+
 function Home() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSeverityPicker, setShowSeverityPicker] = useState(false);
+  const [selectedSeverity, setSelectedSeverity] = useState(null);
+  const [selectedSymptoms, setSelectedSymptoms] = useState([]);
+
+  const toggleSymptom = (symptom) => {
+    setSelectedSymptoms(prev =>
+      prev.includes(symptom)
+        ? prev.filter(s => s !== symptom)
+        : [...prev, symptom]
+    );
+  };
+
   const handlePhotoCapture = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -18,12 +38,21 @@ function Home() {
     e.target.value = '';
   };
 
-  const handleLogPoop = async (selectedSeverity) => {
+  const handleSeverityPick = (sev) => {
+    setSelectedSeverity(sev);
+  };
+
+  const handleLogPoop = async () => {
     setLoading(true);
     setShowSeverityPicker(false);
     try {
-      await offlinePost('/poops', { severity: selectedSeverity });
+      await offlinePost('/poops', {
+        severity: selectedSeverity,
+        symptoms: selectedSymptoms.length > 0 ? selectedSymptoms : undefined
+      });
       setShowSuccess(true);
+      setSelectedSeverity(null);
+      setSelectedSymptoms([]);
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (error) {
       console.error('Failed to log poop:', error);
@@ -75,31 +104,49 @@ function Home() {
                 How was it?
               </p>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  className="btn btn-outline"
-                  style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
-                  onClick={() => handleLogPoop('mild')}
-                >
-                  <span style={{ fontSize: '28px' }}>😊</span>
-                  Easy
-                </button>
-                <button
-                  className="btn btn-outline"
-                  style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
-                  onClick={() => handleLogPoop('moderate')}
-                >
-                  <span style={{ fontSize: '28px' }}>😐</span>
-                  Meh
-                </button>
-                <button
-                  className="btn btn-outline"
-                  style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
-                  onClick={() => handleLogPoop('severe')}
-                >
-                  <span style={{ fontSize: '28px' }}>😣</span>
-                  Uh-oh
-                </button>
+                {[
+                  { val: 'mild', emoji: '😊', label: 'Easy' },
+                  { val: 'moderate', emoji: '😐', label: 'Meh' },
+                  { val: 'severe', emoji: '😣', label: 'Uh-oh' }
+                ].map(s => (
+                  <button
+                    key={s.val}
+                    className={`btn btn-outline${selectedSeverity === s.val ? ' btn-outline-active' : ''}`}
+                    style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
+                    onClick={() => handleSeverityPick(s.val)}
+                  >
+                    <span style={{ fontSize: '28px' }}>{s.emoji}</span>
+                    {s.label}
+                  </button>
+                ))}
               </div>
+
+              {selectedSeverity && (
+                <>
+                  <p style={{ margin: '20px 0 12px 0', fontWeight: '600', textAlign: 'center', fontSize: '15px', color: '#7A5A44' }}>
+                    Any symptoms?
+                  </p>
+                  <div className="symptom-chips">
+                    {SYMPTOM_OPTIONS.map(s => (
+                      <button
+                        key={s.val}
+                        className={`symptom-chip${selectedSymptoms.includes(s.val) ? ' active' : ''}`}
+                        onClick={() => toggleSymptom(s.val)}
+                      >
+                        <span>{s.emoji}</span> {s.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    style={{ marginTop: '16px', height: '52px', fontSize: '18px', borderRadius: '16px' }}
+                    onClick={handleLogPoop}
+                    disabled={loading}
+                  >
+                    {loading ? 'Logging...' : 'Log It'}
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -2,6 +2,7 @@ const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
+const VALID_SYMPTOMS = ['bloating', 'cramps', 'gas', 'nausea', 'urgency', 'fatigue'];
 
 // Get all poop logs (optionally filtered by date)
 router.get('/', authenticateToken, async (req, res) => {
@@ -36,12 +37,15 @@ router.get('/', authenticateToken, async (req, res) => {
 // Log a poop (with optional severity)
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { severity } = req.body;
+    const { severity, symptoms } = req.body;
 
     const poop = await req.prisma.poopLog.create({
       data: {
         userId: req.user.userId,
-        severity: severity || null
+        severity: severity || null,
+        symptoms: Array.isArray(symptoms) && symptoms.length > 0
+          ? JSON.stringify(symptoms.filter(s => VALID_SYMPTOMS.includes(s)))
+          : null
       }
     });
 
@@ -52,10 +56,10 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Update poop severity
+// Update poop severity and symptoms
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const { severity } = req.body;
+    const { severity, symptoms } = req.body;
     const valid = ['mild', 'moderate', 'severe', null];
     if (severity !== undefined && !valid.includes(severity)) {
       return res.status(400).json({ message: 'Invalid severity' });
@@ -72,9 +76,16 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Poop log not found' });
     }
 
+    const data = { severity: severity || null };
+    if (symptoms !== undefined) {
+      data.symptoms = Array.isArray(symptoms) && symptoms.length > 0
+        ? JSON.stringify(symptoms.filter(s => VALID_SYMPTOMS.includes(s)))
+        : null;
+    }
+
     const updated = await req.prisma.poopLog.update({
       where: { id: req.params.id },
-      data: { severity: severity || null }
+      data
     });
 
     res.json(updated);
