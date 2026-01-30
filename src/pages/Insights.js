@@ -22,6 +22,17 @@ function Insights() {
   };
 
   const handleAnalyze = async () => {
+    // Check minimum data requirements
+    const meals = insights?.totalMeals || 0;
+    const poops = insights?.totalPoops || 0;
+    if (meals < 3 || poops < 3) {
+      const missing = [];
+      if (meals < 3) missing.push(`${3 - meals} more meal${3 - meals === 1 ? '' : 's'}`);
+      if (poops < 3) missing.push(`${3 - poops} more poop${3 - poops === 1 ? '' : 's'}`);
+      alert(`Not enough data yet. Log ${missing.join(' and ')} to run analysis.\n\nMinimum: 3 meals + 3 poops.`);
+      return;
+    }
+
     setAnalyzing(true);
     try {
       const response = await api.post('/insights/analyze');
@@ -68,9 +79,18 @@ function Insights() {
               Keep logging meals and bowel movements. Once you have enough data,
               we'll identify patterns and potential trigger foods.
             </p>
-            <p style={{ fontSize: '14px', color: '#999', marginTop: '12px' }}>
-              Tip: Log for at least 1-2 weeks for better insights.
-            </p>
+            <div style={{ fontSize: '14px', color: '#999', marginTop: '12px' }}>
+              <p style={{ margin: '0 0 8px 0', fontWeight: '500', color: '#666' }}>Minimum required:</p>
+              <p style={{ margin: '4px 0' }}>
+                {(insights?.totalMeals || 0) >= 3 ? '✓' : '○'} 3 meals logged ({insights?.totalMeals || 0}/3)
+              </p>
+              <p style={{ margin: '4px 0' }}>
+                {(insights?.totalPoops || 0) >= 3 ? '✓' : '○'} 3 poops logged ({insights?.totalPoops || 0}/3)
+              </p>
+              <p style={{ margin: '12px 0 0', color: '#999' }}>
+                Tip: 1-2 weeks of data gives the best insights.
+              </p>
+            </div>
           </div>
         ) : (
           <>
