@@ -86,7 +86,7 @@ function History() {
         ) : (
           Object.entries(grouped).map(([date, items]) => (
             <div key={date}>
-              <p style={{ fontWeight: '600', color: '#666', marginBottom: '8px' }}>{date}</p>
+              <p style={{ fontWeight: '600', color: '#8B7D6B', marginBottom: '8px' }}>{date}</p>
               {items.map((item, index) => (
                 <div key={item.id || index} className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <span style={{ fontSize: '24px' }}>
@@ -98,23 +98,23 @@ function History() {
                         <p style={{ margin: 0, fontWeight: '600' }}>
                           {item.foods?.map(f => f.name).join(', ') || 'Meal'}
                         </p>
-                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#999' }}>
+                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#B0A090' }}>
                           {formatTime(item.timestamp)}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p style={{ margin: 0, fontWeight: '600' }}>
+                        <p style={{ margin: 0, fontWeight: '600', color: '#3D3229' }}>
                           Bowel Movement
                           {item.severity && (
                             <span style={{ marginLeft: '8px', fontWeight: '400' }}>
-                              {item.severity === 'mild' && '😊 Mild'}
-                              {item.severity === 'moderate' && '😐 Moderate'}
-                              {item.severity === 'severe' && '😣 Severe'}
+                              {item.severity === 'mild' && '😊 Easy'}
+                              {item.severity === 'moderate' && '😐 Meh'}
+                              {item.severity === 'severe' && '😣 Uh-oh'}
                             </span>
                           )}
                         </p>
-                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#999' }}>
+                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#B0A090' }}>
                           {formatTime(item.timestamp)}
                         </p>
                       </>
