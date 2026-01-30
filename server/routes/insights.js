@@ -40,15 +40,18 @@ router.get('/correlations', authenticateToken, async (req, res) => {
 // Analyze data for correlations (triggers AI analysis)
 router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
   try {
-    // Fetch all user data
+    // Only analyze the last 30 days to keep prompt size and costs down
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const [meals, poops] = await Promise.all([
       req.prisma.meal.findMany({
-        where: { userId: req.user.userId },
+        where: { userId: req.user.userId, timestamp: { gte: thirtyDaysAgo } },
         include: { foods: true },
         orderBy: { timestamp: 'asc' }
       }),
       req.prisma.poopLog.findMany({
-        where: { userId: req.user.userId },
+        where: { userId: req.user.userId, timestamp: { gte: thirtyDaysAgo } },
         orderBy: { timestamp: 'asc' }
       })
     ]);
