@@ -1,5 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
+const { aiLimiter } = require('../middleware/rateLimiter');
 const { analyzeCorrelations } = require('../services/ai');
 
 const router = express.Router();
@@ -37,7 +38,7 @@ router.get('/correlations', authenticateToken, async (req, res) => {
 });
 
 // Analyze data for correlations (triggers AI analysis)
-router.post('/analyze', authenticateToken, async (req, res) => {
+router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
   try {
     // Fetch all user data
     const [meals, poops] = await Promise.all([

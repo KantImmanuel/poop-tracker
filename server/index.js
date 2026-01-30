@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
+const { authLimiter, generalLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
 const mealsRoutes = require('./routes/meals');
 const poopsRoutes = require('./routes/poops');
@@ -11,6 +12,7 @@ const insightsRoutes = require('./routes/insights');
 const historyRoutes = require('./routes/history');
 
 const app = express();
+app.set('trust proxy', 1);
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
@@ -40,6 +42,11 @@ app.use((req, res, next) => {
   req.prisma = prisma;
   next();
 });
+
+// Rate limiting
+app.use('/api', generalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);

@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const { authenticateToken } = require('../middleware/auth');
+const { aiLimiter } = require('../middleware/rateLimiter');
 const { analyzeFoodImage } = require('../services/ai');
 
 const router = express.Router();
@@ -86,7 +87,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create meal with image
-router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/', authenticateToken, aiLimiter, upload.single('image'), async (req, res) => {
   try {
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
