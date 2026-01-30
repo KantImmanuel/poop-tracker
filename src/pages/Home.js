@@ -38,8 +38,8 @@ function Home() {
     <div className="page">
       {showSuccess && <div className="success-flash">Logged!</div>}
 
-      <div className="page-header">
-        <h1 className="page-title">How's your gut today?</h1>
+      <div className="page-header" style={{ textAlign: 'left', maxWidth: '480px', margin: '0 auto', padding: '32px 16px 16px' }}>
+        <h1 className="page-title" style={{ fontSize: '32px' }}>How's your gut today?</h1>
       </div>
 
       <input
@@ -52,25 +52,19 @@ function Home() {
         style={{ display: 'none' }}
       />
 
-      <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '80px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+      <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', paddingBottom: '80px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <label
             htmlFor="home-photo-input"
             className="btn btn-primary"
             style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
+              padding: '18px 28px',
               fontSize: '20px',
-              gap: '8px',
               cursor: 'pointer'
             }}
           >
-            <span style={{ fontSize: '56px' }}>🍽️</span>
-            <span style={{ fontSize: '22px', fontWeight: '700' }}>Snap your meal</span>
-            <span style={{ fontSize: '14px', fontWeight: '400', opacity: 0.85 }}>We'll handle the rest</span>
+            <span style={{ fontSize: '24px' }}>📷</span>
+            Capture Food
           </label>
 
           {!showSeverityPicker ? (
@@ -79,43 +73,40 @@ function Home() {
               onClick={() => setShowSeverityPicker(true)}
               disabled={loading}
               style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                gap: '8px'
+                padding: '18px 28px',
+                fontSize: '20px'
               }}
             >
-              <span style={{ fontSize: '56px' }}>💩</span>
-              <span style={{ fontSize: '22px', fontWeight: '700' }}>{loading ? 'Logging...' : 'Log Poop'}</span>
-              <span style={{ fontSize: '14px', fontWeight: '400', opacity: 0.85 }}>Tap when you're done!</span>
+              <span style={{ fontSize: '24px' }}>💩</span>
+              {loading ? 'Logging...' : 'Log Poop'}
             </button>
           ) : (
-            <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '24px' }}>
-              <p style={{ margin: '0 0 24px 0', fontWeight: '600', textAlign: 'center', fontSize: '20px', color: '#3D3229' }}>How was it?</p>
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '24px' }}>
+              <p style={{ margin: '0 0 20px 0', fontWeight: '700', textAlign: 'center', fontSize: '20px', color: '#3D3229' }}>How was it?</p>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '24px 12px', fontSize: '16px' }}
+                  style={{ flex: 1, padding: '18px 12px', fontSize: '15px', flexDirection: 'column', gap: '6px' }}
                   onClick={() => handleLogPoop('mild')}
                 >
-                  😊<br />Easy
+                  <span style={{ fontSize: '28px' }}>😊</span>
+                  Easy
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '24px 12px', fontSize: '16px' }}
+                  style={{ flex: 1, padding: '18px 12px', fontSize: '15px', flexDirection: 'column', gap: '6px' }}
                   onClick={() => handleLogPoop('moderate')}
                 >
-                  😐<br />Meh
+                  <span style={{ fontSize: '28px' }}>😐</span>
+                  Meh
                 </button>
                 <button
                   className="btn btn-outline"
-                  style={{ flex: 1, padding: '24px 12px', fontSize: '16px' }}
+                  style={{ flex: 1, padding: '18px 12px', fontSize: '15px', flexDirection: 'column', gap: '6px' }}
                   onClick={() => handleLogPoop('severe')}
                 >
-                  😣<br />Uh-oh
+                  <span style={{ fontSize: '28px' }}>😣</span>
+                  Uh-oh
                 </button>
               </div>
             </div>

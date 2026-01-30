@@ -228,14 +228,14 @@ function LogMeal() {
           ) : (
             <>
               <div className="card">
-                <h3 style={{ margin: '0 0 16px 0' }}>Meal Logged!</h3>
+                <h3 style={{ margin: '0 0 16px 0' }}>Food Logged!</h3>
                 {result.foods?.map((food, index) => (
                   <div key={index} style={{ marginBottom: '8px' }}>
-                    <p style={{ margin: 0, fontWeight: '500' }}>{food.name}</p>
+                    <p style={{ margin: 0, fontWeight: '600' }}>{food.name}</p>
                   </div>
                 ))}
               </div>
-              <button className="btn btn-primary mt-2" onClick={handleDone}>
+              <button className="btn btn-secondary mt-2" onClick={handleDone}>
                 Done
               </button>
             </>
@@ -264,25 +264,21 @@ function LogMeal() {
         />
 
         {!preview ? (
-          <label
-            htmlFor="meal-photo-input"
-            className="btn btn-primary"
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              gap: '8px',
-              cursor: 'pointer',
-              marginBottom: '80px'
-            }}
-          >
-            <span style={{ fontSize: '56px' }}>📷</span>
-            <span style={{ fontSize: '22px', fontWeight: '700' }}>Tap to Take Photo</span>
-            <span style={{ fontSize: '14px', fontWeight: '400', opacity: 0.85 }}>No calorie counting. No judgment.</span>
-          </label>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '80px', gap: '16px' }}>
+            <label
+              htmlFor="meal-photo-input"
+              className="btn btn-primary"
+              style={{
+                padding: '18px 28px',
+                fontSize: '20px',
+                cursor: 'pointer'
+              }}
+            >
+              <span style={{ fontSize: '24px' }}>📷</span>
+              Tap to Take Photo
+            </label>
+            <p style={{ fontSize: '14px', color: '#B0A090', margin: 0 }}>No calorie counting. No judgment.</p>
+          </div>
         ) : (
           <>
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -328,7 +324,7 @@ function LogMeal() {
             {result && (
               <>
                 <div className="card mt-2">
-                  <h3 style={{ margin: '0 0 16px 0' }}>Detected Foods</h3>
+                  <h3 style={{ margin: '0 0 16px 0' }}>Food Logged!</h3>
                   {result.foods?.map((food, index) => (
                     <div key={index} style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: index < result.foods.length - 1 ? '1px solid #E8DDD0' : 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -380,7 +376,7 @@ function LogMeal() {
                   ))}
                 </div>
 
-                <button className="btn btn-primary mt-2" onClick={handleDone}>
+                <button className="btn btn-secondary mt-2" onClick={handleDone}>
                   Done
                 </button>
               </>
