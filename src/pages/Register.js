@@ -46,7 +46,7 @@ function Register() {
           <p className="text-muted">Start tracking your IBS triggers</p>
         </div>
 
-        <div className="card">
+        <div className="card" style={{ background: 'white', border: '1px solid #E8D9C8' }}>
           <form onSubmit={handleSubmit}>
             {error && (
               <div style={{ background: '#F5E3E0', color: '#B8564A', padding: '12px', borderRadius: '12px', marginBottom: '16px' }}>
