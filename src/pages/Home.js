@@ -41,7 +41,7 @@ function Home() {
       {showSuccess && <div className="success-flash">Logged!</div>}
 
       <div className="page-header" style={{ textAlign: 'center' }}>
-        <h1 className="page-title" style={{ fontSize: '32px' }}>
+        <h1 className="page-title">
           How's your gut<br />today?
         </h1>
       </div>

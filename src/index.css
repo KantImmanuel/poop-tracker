@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@400;500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -41,11 +41,11 @@ body {
   padding: 0 32px;
   border: none;
   border-radius: 28px;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  font-family: inherit;
   position: relative;
   overflow: hidden;
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
@@ -64,7 +64,7 @@ body {
   box-shadow:
     0 6px 20px rgba(113, 122, 64, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.08);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .btn-primary:active {
@@ -83,7 +83,7 @@ body {
   box-shadow:
     0 6px 20px rgba(186, 110, 48, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.08);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .btn-secondary:active {
@@ -260,10 +260,13 @@ body {
 
 .page-title {
   margin: 0;
-  font-size: 28px;
-  font-weight: 900;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.05;
   letter-spacing: -0.02em;
   color: #4A2E1F;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.35), 0 3px 10px rgba(0, 0, 0, 0.08);
 }
 
 /* ── Utility classes ── */
