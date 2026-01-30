@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const mealsRoutes = require('./routes/meals');
 const poopsRoutes = require('./routes/poops');
 const insightsRoutes = require('./routes/insights');
+const historyRoutes = require('./routes/history');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -45,6 +46,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/meals', mealsRoutes);
 app.use('/api/poops', poopsRoutes);
 app.use('/api/insights', insightsRoutes);
+app.use('/api/history', historyRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

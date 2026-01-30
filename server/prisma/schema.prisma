@@ -24,6 +24,8 @@ model Meal {
   timestamp     DateTime @default(now())
   rawAiResponse String?  // JSON string of AI response
   foods         Food[]
+
+  @@index([userId, timestamp])
 }
 
 model Food {
@@ -45,4 +47,6 @@ model PoopLog {
   timestamp DateTime @default(now())
   severity  String?  // mild, moderate, severe
   symptoms  String?  // JSON array: ["bloating", "cramps", "gas", "nausea", "urgency", "fatigue"]
+
+  @@index([userId, timestamp])
 }

@@ -48,6 +48,9 @@ function isSameDay(a, b) {
 function History() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [calendarExpanded, setCalendarExpanded] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
@@ -65,19 +68,42 @@ function History() {
     fetchHistory();
   }, []);
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (cursor = null) => {
     try {
-      const [mealsRes, poopsRes] = await Promise.all([
-        api.get('/meals'),
-        api.get('/poops')
-      ]);
+      if (cursor) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
 
-      const combined = [
-        ...mealsRes.data.map(m => ({ ...m, type: 'meal' })),
-        ...poopsRes.data.map(p => ({ ...p, type: 'poop' }))
-      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const params = {};
+      if (cursor) params.cursor = cursor;
 
-      setEntries(combined);
+      const res = await api.get('/history', { params });
+
+      if (cursor) {
+        setEntries(prev => [...prev, ...res.data.items]);
+      } else {
+        setEntries(res.data.items);
+      }
+      setNextCursor(res.data.nextCursor);
+      setHasMore(res.data.hasMore);
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const fetchDateHistory = async (date) => {
+    try {
+      setLoading(true);
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const res = await api.get('/history', { params: { date: dateStr } });
+      setEntries(res.data.items);
+      setNextCursor(null);
+      setHasMore(false);
     } catch (error) {
       console.error('Failed to fetch history:', error);
     } finally {
@@ -116,8 +142,10 @@ function History() {
   const handleDayClick = (date) => {
     if (selectedDate && isSameDay(selectedDate, date)) {
       setSelectedDate(null);
+      fetchHistory();
     } else {
       setSelectedDate(date);
+      fetchDateHistory(date);
     }
   };
 
@@ -125,6 +153,7 @@ function History() {
     if (!date) return;
     setSelectedDate(date);
     setCalendarExpanded(false);
+    fetchDateHistory(date);
   };
 
   const prevMonth = () => {
@@ -214,11 +243,7 @@ function History() {
     setEditingId(null);
   };
 
-  const filteredEntries = selectedDate
-    ? entries.filter(e => isSameDay(new Date(e.timestamp), selectedDate))
-    : entries;
-
-  const grouped = groupByDate(filteredEntries);
+  const grouped = groupByDate(entries);
   const weekDays = getWeekDays();
   const monthGrid = getMonthGrid(viewYear, viewMonth);
 
@@ -304,14 +329,14 @@ function History() {
         {selectedDate && (
           <button
             className="history-clear-filter"
-            onClick={() => setSelectedDate(null)}
+            onClick={() => { setSelectedDate(null); fetchHistory(); }}
           >
             Show all &times;
           </button>
         )}
 
         {/* ── Entry list ── */}
-        {filteredEntries.length === 0 ? (
+        {entries.length === 0 ? (
           <div className="card text-center">
             <p className="text-muted">
               {selectedDate ? 'No entries on this day.' : 'No entries yet. Start logging!'}
@@ -457,6 +482,30 @@ function History() {
               })}
             </div>
           ))
+        )}
+
+        {hasMore && !selectedDate && (
+          <button
+            onClick={() => fetchHistory(nextCursor)}
+            disabled={loadingMore}
+            style={{
+              display: 'block',
+              width: '100%',
+              padding: '12px',
+              marginTop: '8px',
+              background: 'none',
+              border: '2px solid #E8D9C8',
+              borderRadius: '16px',
+              color: '#7A5A44',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              opacity: loadingMore ? 0.6 : 1
+            }}
+          >
+            {loadingMore ? 'Loading...' : 'Load more'}
+          </button>
         )}
       </div>
     </div>
