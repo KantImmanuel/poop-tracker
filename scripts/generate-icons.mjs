@@ -84,6 +84,29 @@ async function main() {
   await page192.screenshot({ path: path.join(ROOT, 'public', 'logo192.png'), fullPage: false });
   await page192.close();
 
+  // 32x32 favicon PNG (used as favicon.ico replacement)
+  console.log('Generating favicon.ico...');
+  const page32 = await browser.newPage({
+    viewport: { width: 32, height: 32 },
+    deviceScaleFactor: 1,
+  });
+  const htmlFav = `<!DOCTYPE html>
+<html><head><style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: #FFF3E3;
+    border-radius: 6px;
+  }
+  .icon { font-size: 22px; line-height: 1; }
+</style></head>
+<body><div class="icon">💩</div></body></html>`;
+  await page32.setContent(htmlFav, { waitUntil: 'networkidle' });
+  await page32.waitForTimeout(300);
+  await page32.screenshot({ path: path.join(ROOT, 'public', 'favicon.png'), fullPage: false });
+  await page32.close();
+
   await browser.close();
   console.log('Done.');
 }
