@@ -212,6 +212,46 @@ router.put('/:id/clarify', authenticateToken, async (req, res) => {
   }
 });
 
+// Update meal food names
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { foods } = req.body;
+
+    const meal = await req.prisma.meal.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.user.userId
+      },
+      include: { foods: true }
+    });
+
+    if (!meal) {
+      return res.status(404).json({ message: 'Meal not found' });
+    }
+
+    if (foods && Array.isArray(foods)) {
+      for (const f of foods) {
+        if (f.id && f.name) {
+          await req.prisma.food.update({
+            where: { id: f.id },
+            data: { name: f.name }
+          });
+        }
+      }
+    }
+
+    const updated = await req.prisma.meal.findFirst({
+      where: { id: req.params.id },
+      include: { foods: true }
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Update meal error:', error);
+    res.status(500).json({ message: 'Failed to update meal' });
+  }
+});
+
 // Delete meal
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {

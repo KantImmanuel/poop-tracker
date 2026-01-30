@@ -44,6 +44,12 @@ function History() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
   const [calendarExpanded, setCalendarExpanded] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editSeverity, setEditSeverity] = useState(null);
+  const [editFoods, setEditFoods] = useState([]);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -131,6 +137,77 @@ function History() {
     } else {
       setViewMonth(viewMonth + 1);
     }
+  };
+
+  const handleCardClick = (item) => {
+    if (editingId) return;
+    if (expandedId === item.id) {
+      setExpandedId(null);
+      setConfirmDeleteId(null);
+    } else {
+      setExpandedId(item.id);
+      setConfirmDeleteId(null);
+    }
+  };
+
+  const handleDelete = async (item) => {
+    setActionLoading(true);
+    try {
+      const endpoint = item.type === 'meal' ? '/meals' : '/poops';
+      await api.delete(`${endpoint}/${item.id}`);
+      setEntries(prev => prev.filter(e => e.id !== item.id));
+      setExpandedId(null);
+      setConfirmDeleteId(null);
+    } catch (error) {
+      console.error('Delete failed:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    if (item.type === 'poop') {
+      setEditSeverity(item.severity || null);
+    } else {
+      setEditFoods(item.foods?.map(f => ({ id: f.id, name: f.name })) || []);
+    }
+  };
+
+  const savePoopEdit = async (item) => {
+    setActionLoading(true);
+    try {
+      await api.put(`/poops/${item.id}`, { severity: editSeverity });
+      setEntries(prev => prev.map(e =>
+        e.id === item.id ? { ...e, severity: editSeverity } : e
+      ));
+      setEditingId(null);
+      setExpandedId(null);
+    } catch (error) {
+      console.error('Update failed:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const saveMealEdit = async (item) => {
+    setActionLoading(true);
+    try {
+      const res = await api.put(`/meals/${item.id}`, { foods: editFoods });
+      setEntries(prev => prev.map(e =>
+        e.id === item.id ? { ...e, foods: res.data.foods } : e
+      ));
+      setEditingId(null);
+      setExpandedId(null);
+    } catch (error) {
+      console.error('Update failed:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
   };
 
   const filteredEntries = selectedDate
@@ -240,41 +317,143 @@ function History() {
           Object.entries(grouped).map(([date, items]) => (
             <div key={date}>
               <p style={{ fontWeight: '600', color: '#7A5A44', marginBottom: '8px' }}>{date}</p>
-              {items.map((item, index) => (
-                <div key={item.id || index} className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <span style={{ fontSize: '24px' }}>
-                    {item.type === 'meal' ? '🍽️' : '💩'}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    {item.type === 'meal' ? (
-                      <>
-                        <p style={{ margin: 0, fontWeight: '600' }}>
-                          {item.foods?.map(f => f.name).join(', ') || 'Meal'}
-                        </p>
-                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#7A5A44' }}>
-                          {formatTime(item.timestamp)}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ margin: 0, fontWeight: '600', color: '#4A2E1F' }}>
-                          Bowel Movement
-                          {item.severity && (
-                            <span style={{ marginLeft: '8px', fontWeight: '400' }}>
-                              {item.severity === 'mild' && '😊 Easy'}
-                              {item.severity === 'moderate' && '😐 Meh'}
-                              {item.severity === 'severe' && '😣 Uh-oh'}
-                            </span>
-                          )}
-                        </p>
-                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#7A5A44' }}>
-                          {formatTime(item.timestamp)}
-                        </p>
-                      </>
+              {items.map((item, index) => {
+                const isExpanded = expandedId === item.id;
+                const isEditing = editingId === item.id;
+                const isConfirming = confirmDeleteId === item.id;
+                return (
+                  <div
+                    key={item.id || index}
+                    className={`card history-entry-card${isExpanded ? ' expanded' : ''}`}
+                    onClick={() => handleCardClick(item)}
+                  >
+                    <div className="history-entry-row">
+                      <span style={{ fontSize: '24px' }}>
+                        {item.type === 'meal' ? '🍽️' : '💩'}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        {item.type === 'meal' ? (
+                          <>
+                            <p style={{ margin: 0, fontWeight: '600' }}>
+                              {item.foods?.map(f => f.name).join(', ') || 'Meal'}
+                            </p>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#7A5A44' }}>
+                              {formatTime(item.timestamp)}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p style={{ margin: 0, fontWeight: '600', color: '#4A2E1F' }}>
+                              Bowel Movement
+                              {item.severity && (
+                                <span style={{ marginLeft: '8px', fontWeight: '400' }}>
+                                  {item.severity === 'mild' && '😊 Easy'}
+                                  {item.severity === 'moderate' && '😐 Meh'}
+                                  {item.severity === 'severe' && '😣 Uh-oh'}
+                                </span>
+                              )}
+                            </p>
+                            <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#7A5A44' }}>
+                              {formatTime(item.timestamp)}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && !isEditing && !isConfirming && (
+                      <div className="history-card-actions" onClick={e => e.stopPropagation()}>
+                        <button
+                          className="history-action-btn"
+                          onClick={() => startEdit(item)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="history-action-btn delete"
+                          onClick={() => setConfirmDeleteId(item.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+
+                    {isConfirming && (
+                      <div className="history-confirm-row" onClick={e => e.stopPropagation()}>
+                        <span style={{ fontSize: '14px', color: '#7A5A44' }}>Delete this entry?</span>
+                        <button
+                          className="history-action-btn delete"
+                          onClick={() => handleDelete(item)}
+                          disabled={actionLoading}
+                        >
+                          {actionLoading ? '...' : 'Yes, delete'}
+                        </button>
+                        <button
+                          className="history-action-btn"
+                          onClick={() => setConfirmDeleteId(null)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    {isEditing && item.type === 'poop' && (
+                      <div className="history-edit-severity" onClick={e => e.stopPropagation()}>
+                        {[
+                          { val: 'mild', label: '😊 Easy' },
+                          { val: 'moderate', label: '😐 Meh' },
+                          { val: 'severe', label: '😣 Uh-oh' }
+                        ].map(s => (
+                          <button
+                            key={s.val}
+                            className={`history-severity-btn${editSeverity === s.val ? ' active' : ''}`}
+                            onClick={() => setEditSeverity(s.val)}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                        <div className="history-edit-btns">
+                          <button
+                            className="history-action-btn save"
+                            onClick={() => savePoopEdit(item)}
+                            disabled={actionLoading}
+                          >
+                            {actionLoading ? '...' : 'Save'}
+                          </button>
+                          <button className="history-action-btn" onClick={cancelEdit}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {isEditing && item.type === 'meal' && (
+                      <div className="history-edit-foods" onClick={e => e.stopPropagation()}>
+                        {editFoods.map((f, fi) => (
+                          <input
+                            key={f.id}
+                            className="history-edit-input"
+                            value={f.name}
+                            onChange={e => {
+                              const updated = [...editFoods];
+                              updated[fi] = { ...updated[fi], name: e.target.value };
+                              setEditFoods(updated);
+                            }}
+                          />
+                        ))}
+                        <div className="history-edit-btns">
+                          <button
+                            className="history-action-btn save"
+                            onClick={() => saveMealEdit(item)}
+                            disabled={actionLoading}
+                          >
+                            {actionLoading ? '...' : 'Save'}
+                          </button>
+                          <button className="history-action-btn" onClick={cancelEdit}>Cancel</button>
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ))
         )}

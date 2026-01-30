@@ -52,6 +52,38 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Update poop severity
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { severity } = req.body;
+    const valid = ['mild', 'moderate', 'severe', null];
+    if (severity !== undefined && !valid.includes(severity)) {
+      return res.status(400).json({ message: 'Invalid severity' });
+    }
+
+    const poop = await req.prisma.poopLog.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.user.userId
+      }
+    });
+
+    if (!poop) {
+      return res.status(404).json({ message: 'Poop log not found' });
+    }
+
+    const updated = await req.prisma.poopLog.update({
+      where: { id: req.params.id },
+      data: { severity: severity || null }
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Update poop error:', error);
+    res.status(500).json({ message: 'Failed to update poop log' });
+  }
+});
+
 // Delete a poop log
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {

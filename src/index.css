@@ -833,3 +833,121 @@ body {
   color: #7A5A44;
   cursor: pointer;
 }
+
+/* ── History entry cards (edit/delete) ── */
+.history-entry-card {
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.history-entry-card.expanded {
+  box-shadow: 0 2px 12px rgba(74, 46, 31, 0.1);
+}
+
+.history-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.history-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #E8D9C8;
+}
+
+.history-action-btn {
+  padding: 6px 16px;
+  border: 1px solid #E8D9C8;
+  border-radius: 8px;
+  background: white;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A2E1F;
+  cursor: pointer;
+}
+
+.history-action-btn.delete {
+  color: #B8564A;
+  border-color: #B8564A;
+}
+
+.history-action-btn.save {
+  background: #7E8B47;
+  color: white;
+  border-color: #7E8B47;
+}
+
+.history-action-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.history-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #E8D9C8;
+}
+
+.history-edit-severity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #E8D9C8;
+}
+
+.history-severity-btn {
+  padding: 6px 14px;
+  border: 1px solid #E8D9C8;
+  border-radius: 8px;
+  background: white;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A2E1F;
+  cursor: pointer;
+}
+
+.history-severity-btn.active {
+  background: #7E8B47;
+  color: white;
+  border-color: #7E8B47;
+}
+
+.history-edit-foods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #E8D9C8;
+}
+
+.history-edit-input {
+  padding: 8px 12px;
+  border: 1px solid #E8D9C8;
+  border-radius: 8px;
+  background: #FFF3E3;
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  color: #4A2E1F;
+  outline: none;
+}
+
+.history-edit-input:focus {
+  border-color: #7E8B47;
+}
+
+.history-edit-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
