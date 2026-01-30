@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import BottomNav from './components/BottomNav';
 import OfflineIndicator from './components/OfflineIndicator';
+import InstallBanner from './components/InstallBanner';
 import Home from './pages/Home';
 import Landing from './pages/Landing';
 import LogMeal from './pages/LogMeal';
@@ -52,6 +53,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <OfflineIndicator />
+        <InstallBanner />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
