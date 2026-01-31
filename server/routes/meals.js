@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { authenticateToken } = require('../middleware/auth');
 const { aiLimiter } = require('../middleware/rateLimiter');
 const { analyzeFoodImage } = require('../services/ai');
@@ -89,19 +90,18 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create meal with image
 router.post('/', authenticateToken, aiLimiter, upload.single('image'), async (req, res) => {
   try {
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-
     // Analyze image with AI
     let aiResult = { foods: [] };
     if (req.file) {
       aiResult = await analyzeFoodImage(req.file.path);
+      // Delete the image — we only needed it for AI analysis
+      fs.unlink(req.file.path, () => {});
     }
 
     // Create meal with foods
     const meal = await req.prisma.meal.create({
       data: {
         userId: req.user.userId,
-        imageUrl,
         rawAiResponse: JSON.stringify(aiResult),
         foods: {
           create: aiResult.foods.map(food => ({

@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
 const { authLimiter, generalLimiter } = require('./middleware/rateLimiter');
@@ -35,7 +34,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Make prisma available to routes
 app.use((req, res, next) => {

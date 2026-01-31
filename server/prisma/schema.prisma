@@ -20,7 +20,6 @@ model Meal {
   id            String   @id @default(uuid())
   userId        String
   user          User     @relation(fields: [userId], references: [id])
-  imageUrl      String?
   timestamp     DateTime @default(now())
   rawAiResponse String?  // JSON string of AI response
   foods         Food[]
