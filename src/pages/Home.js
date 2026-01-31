@@ -147,32 +147,28 @@ function Home() {
                 ))}
               </div>
 
-              {selectedSeverity && (
-                <>
-                  <p style={{ margin: '20px 0 12px 0', fontWeight: '600', textAlign: 'center', fontSize: '15px', color: '#7A5A44' }}>
-                    Any symptoms?
-                  </p>
-                  <div className="symptom-chips">
-                    {SYMPTOM_OPTIONS.map(s => (
-                      <button
-                        key={s.val}
-                        className={`symptom-chip${selectedSymptoms.includes(s.val) ? ' active' : ''}`}
-                        onClick={() => toggleSymptom(s.val)}
-                      >
-                        <span>{s.emoji}</span> {s.label}
-                      </button>
-                    ))}
-                  </div>
+              <p style={{ margin: '20px 0 12px 0', fontWeight: '600', textAlign: 'center', fontSize: '15px', color: '#7A5A44' }}>
+                Any symptoms?
+              </p>
+              <div className="symptom-chips">
+                {SYMPTOM_OPTIONS.map(s => (
                   <button
-                    className="btn btn-primary"
-                    style={{ marginTop: '16px', height: '52px', fontSize: '18px', borderRadius: '16px' }}
-                    onClick={handleLogPoop}
-                    disabled={loading}
+                    key={s.val}
+                    className={`symptom-chip${selectedSymptoms.includes(s.val) ? ' active' : ''}`}
+                    onClick={() => toggleSymptom(s.val)}
                   >
-                    {loading ? 'Logging...' : 'Log It'}
+                    <span>{s.emoji}</span> {s.label}
                   </button>
-                </>
-              )}
+                ))}
+              </div>
+              <button
+                className="btn btn-primary"
+                style={{ marginTop: '16px', height: '52px', fontSize: '18px', borderRadius: '16px' }}
+                onClick={handleLogPoop}
+                disabled={loading || !selectedSeverity}
+              >
+                {loading ? 'Logging...' : 'Log It'}
+              </button>
             </div>
           )}
         </div>
