@@ -129,9 +129,18 @@ function startDevServer() {
   return child;
 }
 
+// Calibration mock: new user with partial data, no analysis yet
+const MOCK_INSIGHTS_CALIBRATION = {
+  totalMeals: 1,
+  totalPoops: 1,
+  daysTracked: 1,
+  daysCovered: 1,
+  triggers: []
+};
+
 // ── API route interceptor ───────────────────────────────────────────────────
 
-async function interceptAPIs(page) {
+async function interceptAPIs(page, { insightsMock = MOCK_INSIGHTS } = {}) {
   await page.route('**/api/**', (route) => {
     const url = route.request().url();
     const method = route.request().method();
@@ -143,10 +152,10 @@ async function interceptAPIs(page) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_POOPS) });
     }
     if (url.includes('/api/insights/correlations')) {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_INSIGHTS) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(insightsMock) });
     }
     if (url.includes('/api/insights/analyze')) {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_INSIGHTS) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(insightsMock) });
     }
     if (url.includes('/api/meals') && method === 'POST') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_FOOD_LOGGED) });
@@ -218,7 +227,7 @@ async function captureScreenshots(baseUrl) {
   await loggedPage.screenshot({ path: path.join(OUT, 'food-logged.png'), fullPage: false });
   await loggedPage.close();
 
-  // ── 4. Log Poop screen (severity picker) ────────────────────────────────
+  // ── 4. Log Poop screen (severity + symptom picker) ─────────────────────
   console.log('Capturing: log-poop.png');
   const poopPage = await context.newPage();
   await interceptAPIs(poopPage);
@@ -226,13 +235,20 @@ async function captureScreenshots(baseUrl) {
   await injectAuth(poopPage);
   await poopPage.goto(baseUrl, { waitUntil: 'networkidle' });
   await poopPage.waitForTimeout(500);
-  // Click the "Log Poop" button to show severity picker
+  // Click "Log Poop" to show severity picker
   await poopPage.click('button:has-text("Log Poop")');
   await poopPage.waitForTimeout(400);
+  // Select "Meh" severity to reveal symptom chips
+  await poopPage.click('button:has-text("Meh")');
+  await poopPage.waitForTimeout(300);
+  // Select a couple of symptoms
+  await poopPage.click('button:has-text("Bloating")');
+  await poopPage.click('button:has-text("Cramps")');
+  await poopPage.waitForTimeout(200);
   await poopPage.screenshot({ path: path.join(OUT, 'log-poop.png'), fullPage: false });
   await poopPage.close();
 
-  // ── 5. Insights screen ─────────────────────────────────────────────────
+  // ── 5. Insights screen (with analysis results) ───────────────────────
   console.log('Capturing: insights.png');
   const insightsPage = await context.newPage();
   await interceptAPIs(insightsPage);
@@ -242,6 +258,17 @@ async function captureScreenshots(baseUrl) {
   await insightsPage.waitForTimeout(800);
   await insightsPage.screenshot({ path: path.join(OUT, 'insights.png'), fullPage: true });
   await insightsPage.close();
+
+  // ── 6. Insights calibration screen (not enough data) ─────────────────
+  console.log('Capturing: insights-calibration.png');
+  const calibrationPage = await context.newPage();
+  await interceptAPIs(calibrationPage, { insightsMock: MOCK_INSIGHTS_CALIBRATION });
+  await calibrationPage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(calibrationPage);
+  await calibrationPage.goto(`${baseUrl}/insights`, { waitUntil: 'networkidle' });
+  await calibrationPage.waitForTimeout(800);
+  await calibrationPage.screenshot({ path: path.join(OUT, 'insights-calibration.png'), fullPage: false });
+  await calibrationPage.close();
 
   await browser.close();
   console.log(`\nAll screenshots saved to ${OUT}/`);
