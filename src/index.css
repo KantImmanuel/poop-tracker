@@ -203,11 +203,11 @@ body {
 
 /* ── Cards ── */
 .card {
-  background: #FFF3E3;
+  background: white;
   border-radius: 24px;
   padding: 24px;
   box-shadow:
-    0 4px 20px rgba(74, 46, 31, 0.05),
+    0 4px 20px rgba(74, 46, 31, 0.06),
     0 1px 4px rgba(0, 0, 0, 0.02);
   margin-bottom: 16px;
 }
