@@ -229,6 +229,55 @@ router.put('/:id/clarify', authenticateToken, async (req, res) => {
   }
 });
 
+// Update confirmed ingredients after concealed-food review
+router.put('/:id/ingredients', authenticateToken, async (req, res) => {
+  try {
+    const { foods } = req.body;
+
+    if (!Array.isArray(foods)) {
+      return res.status(400).json({ message: 'foods array is required' });
+    }
+
+    const meal = await req.prisma.meal.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.user.userId
+      },
+      include: { foods: true }
+    });
+
+    if (!meal) {
+      return res.status(404).json({ message: 'Meal not found' });
+    }
+
+    for (const f of foods) {
+      if (f.foodIndex != null && Array.isArray(f.ingredients) && f.foodIndex < meal.foods.length) {
+        const foodToUpdate = meal.foods[f.foodIndex];
+        await req.prisma.food.update({
+          where: { id: foodToUpdate.id },
+          data: { ingredients: JSON.stringify(f.ingredients) }
+        });
+      }
+    }
+
+    const updated = await req.prisma.meal.findFirst({
+      where: { id: req.params.id },
+      include: { foods: true }
+    });
+
+    res.json({
+      ...updated,
+      foods: updated.foods.map(f => ({
+        ...f,
+        ingredients: f.ingredients ? JSON.parse(f.ingredients) : []
+      }))
+    });
+  } catch (error) {
+    console.error('Update ingredients error:', error);
+    res.status(500).json({ message: 'Failed to update ingredients' });
+  }
+});
+
 // Update meal food names
 router.put('/:id', authenticateToken, async (req, res) => {
   try {

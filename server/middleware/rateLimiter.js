@@ -30,10 +30,10 @@ const aiLimiter = rateLimit({
 });
 
 // Tier 2b: Guest AI — unauthenticated image analysis
-// 5 requests per hour per IP (stricter than authenticated)
+// 10 requests per hour per IP
 const guestAiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {

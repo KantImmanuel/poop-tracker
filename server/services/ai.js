@@ -152,6 +152,12 @@ Based on this AND the image, identify each food item with:
 3. Brand/restaurant if identifiable
 4. Your confidence (0.0-1.0)
 5. If uncertain, provide 2-3 alternatives
+6. If the food appears wrapped, enclosed, or its contents are not fully visible (e.g., burrito, wrap, omelette, quesadilla, sandwich, dumpling, stuffed food):
+   - Set "isConcealed": true
+   - Put visible/certain ingredients in "confirmedIngredients"
+   - Put likely-but-hidden ingredients in "possibleIngredients"
+   - Leave "ingredients" as the combined list of both
+   Otherwise set "isConcealed": false
 
 IMPORTANT:
 - Don't list inedible parts (peels, etc.) as foods
@@ -165,6 +171,9 @@ Return ONLY valid JSON:
       "name": "Food Name",
       "category": "Category",
       "ingredients": ["ingredient1", "ingredient2"],
+      "isConcealed": false,
+      "confirmedIngredients": [],
+      "possibleIngredients": [],
       "brand": null,
       "restaurant": null,
       "portion": "portion description",
@@ -226,6 +235,12 @@ For EACH food item visible:
 4. Estimate portion size
 5. Rate your confidence (0.0 to 1.0)
 6. If confidence < 0.8, provide 2-3 alternative guesses
+7. If the food appears wrapped, enclosed, or its contents are not fully visible (e.g., burrito, wrap, omelette, quesadilla, sandwich, dumpling, stuffed food):
+   - Set "isConcealed": true
+   - Put visible/certain ingredients in "confirmedIngredients"
+   - Put likely-but-hidden ingredients in "possibleIngredients"
+   - Leave "ingredients" as the combined list of both
+   Otherwise set "isConcealed": false
 
 IMPORTANT:
 - Don't include inedible parts (peels, seeds, etc.) as separate foods
@@ -239,6 +254,9 @@ Return ONLY valid JSON:
       "name": "Food Name",
       "category": "Category",
       "ingredients": ["ingredient1", "ingredient2"],
+      "isConcealed": false,
+      "confirmedIngredients": [],
+      "possibleIngredients": [],
       "brand": null,
       "restaurant": null,
       "portion": "portion description",

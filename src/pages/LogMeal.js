@@ -36,6 +36,11 @@ function LogMeal() {
   const [clarificationOptions, setClarificationOptions] = useState([]);
   const [pendingMealId, setPendingMealId] = useState(null);
 
+  // Concealed food ingredient confirmation state
+  const [ingredientSelections, setIngredientSelections] = useState({});
+  const [confirmedFoods, setConfirmedFoods] = useState(new Set());
+  const [guestFoodsPendingSave, setGuestFoodsPendingSave] = useState(null);
+
   const handleCapture = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -60,11 +65,23 @@ function LogMeal() {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         const aiResult = response.data;
-        const foods = (aiResult.foods || []).map(f => ({
-          name: f.name,
-          ingredients: Array.isArray(f.ingredients) ? f.ingredients : []
-        }));
-        await saveGuestMeal(foods);
+        const hasConcealed = (aiResult.foods || []).some(f => f.isConcealed);
+
+        if (hasConcealed) {
+          // Defer save until user confirms ingredients
+          initIngredientSelections(aiResult.foods);
+          const foods = (aiResult.foods || []).map(f => ({
+            name: f.name,
+            ingredients: Array.isArray(f.ingredients) ? f.ingredients : []
+          }));
+          setGuestFoodsPendingSave(foods);
+        } else {
+          const foods = (aiResult.foods || []).map(f => ({
+            name: f.name,
+            ingredients: Array.isArray(f.ingredients) ? f.ingredients : []
+          }));
+          await saveGuestMeal(foods);
+        }
         setResult(aiResult);
       } else {
         const response = await offlinePost('/meals', formData, {
@@ -79,6 +96,13 @@ function LogMeal() {
             notes: 'This meal will be analyzed when you\'re back online'
           });
           return;
+        }
+
+        // Initialize concealed food selections if any
+        const hasConcealed = (response.data.foods || []).some(f => f.isConcealed);
+        if (hasConcealed) {
+          initIngredientSelections(response.data.foods);
+          setPendingMealId(response.data.id);
         }
 
         // Check if AI needs clarification (low confidence items)
@@ -124,6 +148,76 @@ function LogMeal() {
       }
     } catch (error) {
       console.error('Failed to update:', error);
+    }
+  };
+
+  // Concealed food helpers
+  const initIngredientSelections = (foods) => {
+    const selections = {};
+    (foods || []).forEach((food, idx) => {
+      if (food.isConcealed) {
+        const confirmed = Array.isArray(food.confirmedIngredients) ? food.confirmedIngredients : [];
+        selections[idx] = new Set(confirmed);
+      }
+    });
+    setIngredientSelections(selections);
+    setConfirmedFoods(new Set());
+  };
+
+  const toggleIngredient = (foodIndex, ingredient) => {
+    setIngredientSelections(prev => {
+      const current = new Set(prev[foodIndex] || []);
+      if (current.has(ingredient)) {
+        current.delete(ingredient);
+      } else {
+        current.add(ingredient);
+      }
+      return { ...prev, [foodIndex]: current };
+    });
+  };
+
+  const handleConfirmIngredients = async (foodIndex) => {
+    const selectedIngredients = Array.from(ingredientSelections[foodIndex] || []);
+
+    // Update result state
+    const updatedFoods = [...result.foods];
+    updatedFoods[foodIndex] = {
+      ...updatedFoods[foodIndex],
+      ingredients: selectedIngredients
+    };
+    setResult({ ...result, foods: updatedFoods });
+
+    // Mark as confirmed
+    setConfirmedFoods(prev => new Set([...prev, foodIndex]));
+
+    // For authenticated users, update the DB
+    if (!isGuest && pendingMealId) {
+      try {
+        await api.put(`/meals/${pendingMealId}/ingredients`, {
+          foods: [{ foodIndex, ingredients: selectedIngredients }]
+        });
+      } catch (error) {
+        console.error('Failed to update ingredients:', error);
+      }
+    }
+
+    // For guests, check if all concealed foods are now confirmed
+    if (isGuest && guestFoodsPendingSave) {
+      const allConcealed = (result.foods || [])
+        .map((f, i) => f.isConcealed ? i : null)
+        .filter(i => i !== null);
+      const newConfirmed = new Set([...confirmedFoods, foodIndex]);
+      const allDone = allConcealed.every(i => newConfirmed.has(i));
+
+      if (allDone) {
+        // Build final foods with confirmed ingredients
+        const finalFoods = updatedFoods.map(f => ({
+          name: f.name,
+          ingredients: Array.isArray(f.ingredients) ? f.ingredients : []
+        }));
+        await saveGuestMeal(finalFoods);
+        setGuestFoodsPendingSave(null);
+      }
     }
   };
 
@@ -185,6 +279,9 @@ function LogMeal() {
     setResult(null);
     setNeedsClarification(false);
     setClarificationOptions([]);
+    setIngredientSelections({});
+    setConfirmedFoods(new Set());
+    setGuestFoodsPendingSave(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -315,23 +412,28 @@ function LogMeal() {
             </div>
 
             {!result && !loading && (
-              <div style={{
-                display: 'flex',
-                gap: '12px',
-                marginTop: '16px',
-                position: 'sticky',
-                bottom: '80px',
-                background: '#FFF3E3',
-                padding: '12px 0',
-                zIndex: 10
-              }}>
-                <button className="btn btn-outline" onClick={handleRetake}>
-                  Retake
-                </button>
-                <button className="btn btn-primary" onClick={handleSubmit}>
-                  Analyze
-                </button>
-              </div>
+              <>
+                <p style={{ fontSize: '13px', color: '#7A5A44', textAlign: 'center', margin: '12px 0 0' }}>
+                  Tip: Show the inside of your food for better results — bite into it or slice it open.
+                </p>
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  marginTop: '16px',
+                  position: 'sticky',
+                  bottom: '80px',
+                  background: '#FFF3E3',
+                  padding: '12px 0',
+                  zIndex: 10
+                }}>
+                  <button className="btn btn-outline" onClick={handleRetake}>
+                    Retake
+                  </button>
+                  <button className="btn btn-primary" onClick={handleSubmit}>
+                    Analyze
+                  </button>
+                </div>
+              </>
             )}
 
             {loading && (
@@ -341,15 +443,30 @@ function LogMeal() {
               </div>
             )}
 
-            {result && (
+            {result && (() => {
+              const concealedIndices = (result.foods || [])
+                .map((f, i) => f.isConcealed ? i : null)
+                .filter(i => i !== null);
+              const allConcealedConfirmed = concealedIndices.length === 0 ||
+                concealedIndices.every(i => confirmedFoods.has(i));
+
+              return (
               <>
                 <div className="card mt-2">
                   <h3 style={{ margin: '0 0 16px 0' }}>Food Logged!</h3>
-                  {result.foods?.map((food, index) => (
+                  {result.foods?.map((food, index) => {
+                    const isConcealed = food.isConcealed && !confirmedFoods.has(index);
+                    const allIngredients = [
+                      ...(Array.isArray(food.confirmedIngredients) ? food.confirmedIngredients : []),
+                      ...(Array.isArray(food.possibleIngredients) ? food.possibleIngredients : [])
+                    ];
+                    const selections = ingredientSelections[index];
+
+                    return (
                     <div key={index} style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: index < result.foods.length - 1 ? '1px solid #E8D9C8' : 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#4A2E1F' }}>{food.name}</p>
-                        {food.confidence && food.confidence < 0.7 && (
+                        {food.confidence && food.confidence < 0.7 && !food.isConcealed && (
                           <span style={{
                             background: '#F5ECDB',
                             color: '#B87A2E',
@@ -360,12 +477,60 @@ function LogMeal() {
                             Uncertain
                           </span>
                         )}
+                        {food.isConcealed && !confirmedFoods.has(index) && (
+                          <span style={{
+                            background: '#E5EDE5',
+                            color: '#5A8A60',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '12px'
+                          }}>
+                            Confirm ingredients
+                          </span>
+                        )}
                       </div>
-                      {food.ingredients && (
+
+                      {/* Ingredient chips for concealed foods */}
+                      {isConcealed && selections && (
+                        <>
+                          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#7A5A44' }}>
+                            We can't see inside — tap to select what's in it:
+                          </p>
+                          <div className="symptom-chips">
+                            {allIngredients.map(ingredient => (
+                              <button
+                                key={ingredient}
+                                className={`symptom-chip${selections.has(ingredient) ? ' active' : ''}`}
+                                onClick={() => toggleIngredient(index, ingredient)}
+                              >
+                                {ingredient}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            className="btn btn-primary"
+                            style={{ marginTop: '12px', height: '44px', fontSize: '15px', borderRadius: '14px', width: '100%' }}
+                            onClick={() => handleConfirmIngredients(index)}
+                          >
+                            Confirm Ingredients
+                          </button>
+                        </>
+                      )}
+
+                      {/* Confirmed concealed food — show final ingredients */}
+                      {food.isConcealed && confirmedFoods.has(index) && food.ingredients && (
                         <p style={{ margin: '0', fontSize: '14px', color: '#7A5A44' }}>
                           {Array.isArray(food.ingredients) ? food.ingredients.join(', ') : food.ingredients}
                         </p>
                       )}
+
+                      {/* Non-concealed food — show ingredients as before */}
+                      {!food.isConcealed && food.ingredients && (
+                        <p style={{ margin: '0', fontSize: '14px', color: '#7A5A44' }}>
+                          {Array.isArray(food.ingredients) ? food.ingredients.join(', ') : food.ingredients}
+                        </p>
+                      )}
+
                       {food.restaurant && (
                         <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#7A5A44' }}>
                           📍 {food.restaurant}
@@ -393,14 +558,20 @@ function LogMeal() {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                <button className="btn btn-secondary mt-2" onClick={handleDone}>
+                <button
+                  className="btn btn-secondary mt-2"
+                  onClick={handleDone}
+                  disabled={!allConcealedConfirmed}
+                >
                   Done
                 </button>
               </>
-            )}
+              );
+            })()}
           </>
         )}
       </div>
