@@ -494,19 +494,22 @@ body {
 .landing-screenshot-frame {
   flex-shrink: 0;
   width: 220px;
+  aspect-ratio: 9 / 14;
   scroll-snap-align: center;
   border-radius: 24px;
   overflow: hidden;
   box-shadow:
     0 8px 32px rgba(74, 46, 31, 0.12),
     0 2px 8px rgba(0, 0, 0, 0.05);
-  background: #1a1a1a;
+  background: #FFF3E3;
 }
 
 .landing-screenshot-frame img {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
+  object-fit: cover;
+  object-position: top;
 }
 
 /* ── Example insight card ── */
@@ -527,51 +530,75 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #7E8B47;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
 }
 
-.landing-insight-title {
-  font-family: 'Fredoka', 'Nunito', sans-serif;
-  font-size: 22px;
-  font-weight: 600;
+.landing-insight-summary {
+  font-size: 15px;
   color: #4A2E1F;
-  margin: 0 0 16px;
+  line-height: 1.5;
+  margin: 0 0 18px;
 }
 
-.landing-insight-bar {
-  height: 10px;
-  border-radius: 5px;
-  background: #E8D9C8;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.landing-insight-fill {
-  height: 100%;
-  border-radius: 5px;
-  background: linear-gradient(90deg, #7E8B47 0%, #A3B05C 100%);
-}
-
-.landing-insight-meta {
+.landing-insight-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.landing-insight-label {
+  font-weight: 500;
+  color: #4A2E1F;
+}
+
+.landing-insight-reason {
+  font-size: 13px;
+  color: #7A5A44;
+  margin: 4px 0 0;
 }
 
 .landing-insight-badge {
-  background: #F5ECDB;
-  color: #B87A2E;
   padding: 4px 12px;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.landing-insight-badge--red {
+  background: #F5E3E0;
+  color: #B8564A;
+}
+
+.landing-insight-badge--yellow {
+  background: #F5ECDB;
+  color: #B87A2E;
+}
+
+.landing-insight-safe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: #E5EDE5;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #4A2E1F;
+}
+
+.landing-insight-safe-icon {
+  color: #5A8A60;
+  font-weight: 700;
+  font-size: 16px;
 }
 
 .landing-insight-disclaimer {
   font-size: 12px;
   color: #7A5A44;
   font-style: italic;
+  margin: 16px 0 0;
 }
 
 /* ── Bottom CTA ── */

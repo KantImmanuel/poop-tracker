@@ -66,15 +66,29 @@ function Landing() {
       {/* ── Example Insight ── */}
       <section className="landing-section">
         <div className="landing-insight-card">
-          <p className="landing-insight-eyebrow">Example insight</p>
-          <h3 className="landing-insight-title">Garlic might be a culprit</h3>
-          <div className="landing-insight-bar">
-            <div className="landing-insight-fill" style={{ width: '65%' }} />
+          <p className="landing-insight-eyebrow">Example report</p>
+          <p className="landing-insight-summary">
+            Dairy and garlic show the strongest correlation with your symptoms.
+          </p>
+
+          <div className="landing-insight-row">
+            <span className="landing-insight-label">Dairy</span>
+            <span className="landing-insight-badge landing-insight-badge--red">82% likely</span>
           </div>
-          <div className="landing-insight-meta">
-            <span className="landing-insight-badge">65% likely</span>
-            <span className="landing-insight-disclaimer">Based on your logged data — not medical advice.</span>
+          <p className="landing-insight-reason">Present in 6 of 8 meals before symptoms</p>
+
+          <div className="landing-insight-row">
+            <span className="landing-insight-label">Garlic</span>
+            <span className="landing-insight-badge landing-insight-badge--yellow">65% likely</span>
           </div>
+          <p className="landing-insight-reason">Eaten 10 times, suspect in 6 cases</p>
+
+          <div className="landing-insight-safe">
+            <span className="landing-insight-safe-icon">&#10003;</span>
+            <span><strong>Rice</strong> — eaten 7 times with no issues</span>
+          </div>
+
+          <p className="landing-insight-disclaimer">Based on your logged data — not medical advice.</p>
         </div>
       </section>
 
