@@ -274,6 +274,10 @@ function Insights() {
               </button>
             </div>
 
+            <p style={{ fontSize: '11px', color: '#7A5A44', textAlign: 'center', margin: '-8px 0 12px', opacity: 0.7 }}>
+              Takes ~5 seconds per log.
+            </p>
+
             <p style={{ fontSize: '12px', color: '#7A5A44', textAlign: 'center', margin: '0 0 16px' }}>
               Most people start noticing patterns within 1–2 weeks.
             </p>
