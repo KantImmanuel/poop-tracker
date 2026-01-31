@@ -270,7 +270,22 @@ async function captureScreenshots(baseUrl) {
   await calibrationPage.screenshot({ path: path.join(OUT, 'insights-calibration.png'), fullPage: false });
   await calibrationPage.close();
 
-  // ── 7. Settings screen ──────────────────────────────────────────────────
+  // ── 7. Guest home screen (with signup nudge) ──────────────────────────
+  console.log('Capturing: home-guest.png');
+  const guestHomePage = await context.newPage();
+  await interceptAPIs(guestHomePage);
+  await guestHomePage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await guestHomePage.evaluate(() => {
+    localStorage.setItem('guestMode', 'true');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  });
+  await guestHomePage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await guestHomePage.waitForTimeout(500);
+  await guestHomePage.screenshot({ path: path.join(OUT, 'home-guest.png'), fullPage: false });
+  await guestHomePage.close();
+
+  // ── 8. Settings screen ──────────────────────────────────────────────────
   console.log('Capturing: settings.png');
   const settingsPage = await context.newPage();
   await interceptAPIs(settingsPage);

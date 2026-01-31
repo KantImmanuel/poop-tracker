@@ -176,6 +176,27 @@ function Home() {
             </div>
           )}
         </div>
+
+          {isGuest && (
+            <button
+              onClick={() => navigate('/register')}
+              style={{
+                marginTop: '32px',
+                background: 'none',
+                border: 'none',
+                color: '#7E8B47',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                padding: 0,
+                fontFamily: 'inherit',
+                textAlign: 'center',
+                width: '100%'
+              }}
+            >
+              Create a free account to back up your data
+            </button>
+          )}
       </div>
     </div>
   );
