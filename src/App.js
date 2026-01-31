@@ -21,7 +21,7 @@ import { setupOnlineListener } from './services/syncService';
 import './App.css';
 
 function HomeOrLanding() {
-  const { user, loading } = useAuth();
+  const { user, isGuest, loading } = useAuth();
 
   if (loading) {
     return (
@@ -31,7 +31,7 @@ function HomeOrLanding() {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return <Landing />;
   }
 

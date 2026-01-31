@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { getGuestMeals, getGuestPoops, deleteGuestMeal, deleteGuestPoop, updateGuestPoop } from '../services/guestStorage';
 
 const SYMPTOM_EMOJI = {
   bloating: '🫧', cramps: '🤕', gas: '💨',
@@ -46,6 +48,7 @@ function isSameDay(a, b) {
 }
 
 function History() {
+  const { isGuest } = useAuth();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -64,11 +67,40 @@ function History() {
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [viewYear, setViewYear] = useState(today.getFullYear());
 
-  useEffect(() => {
-    fetchHistory();
+  const fetchGuestHistory = useCallback(async (filterDate = null) => {
+    try {
+      setLoading(true);
+      const meals = await getGuestMeals();
+      const poops = await getGuestPoops();
+
+      let items = [
+        ...meals.map(m => ({ ...m, type: 'meal' })),
+        ...poops.map(p => ({ ...p, type: 'poop' }))
+      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      if (filterDate) {
+        items = items.filter(item => {
+          const d = new Date(item.timestamp);
+          return d.getFullYear() === filterDate.getFullYear() &&
+            d.getMonth() === filterDate.getMonth() &&
+            d.getDate() === filterDate.getDate();
+        });
+      }
+
+      setEntries(items);
+      setNextCursor(null);
+      setHasMore(false);
+    } catch (error) {
+      console.error('Failed to fetch guest history:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchHistory = async (cursor = null) => {
+  const fetchHistory = useCallback(async (cursor = null) => {
+    if (isGuest) {
+      return fetchGuestHistory();
+    }
     try {
       if (cursor) {
         setLoadingMore(true);
@@ -94,9 +126,16 @@ function History() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [isGuest, fetchGuestHistory]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   const fetchDateHistory = async (date) => {
+    if (isGuest) {
+      return fetchGuestHistory(date);
+    }
     try {
       setLoading(true);
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -188,8 +227,16 @@ function History() {
   const handleDelete = async (item) => {
     setActionLoading(true);
     try {
-      const endpoint = item.type === 'meal' ? '/meals' : '/poops';
-      await api.delete(`${endpoint}/${item.id}`);
+      if (isGuest) {
+        if (item.type === 'meal') {
+          await deleteGuestMeal(item.id);
+        } else {
+          await deleteGuestPoop(item.id);
+        }
+      } else {
+        const endpoint = item.type === 'meal' ? '/meals' : '/poops';
+        await api.delete(`${endpoint}/${item.id}`);
+      }
       setEntries(prev => prev.filter(e => e.id !== item.id));
       setExpandedId(null);
       setConfirmDeleteId(null);
@@ -223,13 +270,20 @@ function History() {
   const savePoopEdit = async (item) => {
     setActionLoading(true);
     try {
-      await api.put(`/poops/${item.id}`, {
-        severity: editSeverity,
-        symptoms: editSymptoms
-      });
-      setEntries(prev => prev.map(e =>
-        e.id === item.id ? { ...e, severity: editSeverity, symptoms: JSON.stringify(editSymptoms) } : e
-      ));
+      if (isGuest) {
+        await updateGuestPoop(item.id, { severity: editSeverity, symptoms: editSymptoms });
+        setEntries(prev => prev.map(e =>
+          e.id === item.id ? { ...e, severity: editSeverity, symptoms: editSymptoms } : e
+        ));
+      } else {
+        await api.put(`/poops/${item.id}`, {
+          severity: editSeverity,
+          symptoms: editSymptoms
+        });
+        setEntries(prev => prev.map(e =>
+          e.id === item.id ? { ...e, severity: editSeverity, symptoms: JSON.stringify(editSymptoms) } : e
+        ));
+      }
       setEditingId(null);
       setExpandedId(null);
     } catch (error) {

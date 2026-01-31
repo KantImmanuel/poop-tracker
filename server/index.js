@@ -9,6 +9,7 @@ const mealsRoutes = require('./routes/meals');
 const poopsRoutes = require('./routes/poops');
 const insightsRoutes = require('./routes/insights');
 const historyRoutes = require('./routes/history');
+const migrateRoutes = require('./routes/migrate');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -52,6 +53,7 @@ app.use('/api/meals', mealsRoutes);
 app.use('/api/poops', poopsRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/history', historyRoutes);
+app.use('/api/migrate', migrateRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

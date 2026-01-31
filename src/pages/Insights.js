@@ -1,28 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { getGuestStats } from '../services/guestStorage';
 import { isReadyForInsights } from '../utils/insightReadiness';
 
 function Insights() {
   const navigate = useNavigate();
+  const { isGuest } = useAuth();
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
 
-  useEffect(() => {
-    fetchInsights();
-  }, []);
-
-  const fetchInsights = async () => {
+  const fetchInsights = useCallback(async () => {
     try {
-      const response = await api.get('/insights/correlations');
-      setInsights(response.data);
+      if (isGuest) {
+        const stats = await getGuestStats();
+        setInsights(stats);
+      } else {
+        const response = await api.get('/insights/correlations');
+        setInsights(response.data);
+      }
     } catch (error) {
       console.error('Failed to fetch insights:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [isGuest]);
+
+  useEffect(() => {
+    fetchInsights();
+  }, [fetchInsights]);
 
   // Derived state
   const mealsCount = insights?.totalMeals || 0;
@@ -90,7 +98,7 @@ function Insights() {
 
       <div className="container">
         {/* ── Analyze button: visible when ready or has analysis ── */}
-        {(readyForInsights || hasAnalysis) && !analyzing && (
+        {(readyForInsights || hasAnalysis) && !analyzing && !isGuest && (
           <>
             <button
               className="btn btn-primary mb-2"
@@ -112,6 +120,26 @@ function Insights() {
               </p>
             )}
           </>
+        )}
+
+        {/* ── Guest: Sign up to unlock analysis ── */}
+        {isGuest && readyForInsights && !hasAnalysis && (
+          <div className="card text-center">
+            <h3 style={{ margin: '0 0 8px 0', color: '#4A2E1F' }}>Ready for your first analysis</h3>
+            <p style={{ margin: '0 0 16px', color: '#7A5A44', fontSize: '14px', lineHeight: '1.5' }}>
+              You have enough data. Create a free account to unlock AI-powered insights into your food triggers.
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => navigate('/register')}
+            >
+              Sign up to unlock insights
+            </button>
+            <p style={{ fontSize: '12px', color: '#7A5A44', margin: '8px 0 0' }}>
+              Your logged data will be saved to your account.
+            </p>
+          </div>
         )}
 
         {/* ── Analyzing spinner ── */}
@@ -219,8 +247,8 @@ function Insights() {
           </>
         )}
 
-        {/* ── Ready but no analysis yet ── */}
-        {!analyzing && !hasAnalysis && readyForInsights && (
+        {/* ── Ready but no analysis yet (authenticated users only) ── */}
+        {!analyzing && !hasAnalysis && readyForInsights && !isGuest && (
           <div className="card text-center">
             <p style={{ color: '#4A2E1F', lineHeight: '1.5', margin: 0 }}>
               You have enough data for your first analysis. Tap "Analyze My Data" above to get started.

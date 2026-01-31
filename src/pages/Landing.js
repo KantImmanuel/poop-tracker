@@ -1,6 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 function Landing() {
+  const navigate = useNavigate();
+  const { enterGuestMode } = useAuth();
+
+  const handleTryWithoutAccount = () => {
+    enterGuestMode();
+    navigate('/');
+  };
   return (
     <div className="landing-page">
       {/* ── Hero ── */}
@@ -16,6 +24,12 @@ function Landing() {
         <Link to="/register" className="btn btn-primary landing-cta">
           Start Logging
         </Link>
+        <button
+          onClick={handleTryWithoutAccount}
+          className="landing-guest-btn"
+        >
+          Try without an account
+        </button>
         <p className="landing-hero-signin">
           Already have an account?{' '}
           <Link to="/login" className="landing-link">Sign in</Link>
@@ -145,6 +159,12 @@ function Landing() {
         <Link to="/register" className="btn btn-primary landing-cta">
           Start Logging
         </Link>
+        <button
+          onClick={handleTryWithoutAccount}
+          className="landing-guest-btn"
+        >
+          Or try without an account
+        </button>
       </section>
 
       {/* ── Footer ── */}

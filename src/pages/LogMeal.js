@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import api, { offlinePost } from '../services/api';
+import { saveGuestMeal } from '../services/guestStorage';
 
 function LogMeal() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isGuest } = useAuth();
   const [searchParams] = useSearchParams();
-  const isManualMode = searchParams.get('manual') === 'true';
+  const isManualMode = isGuest || searchParams.get('manual') === 'true';
 
   // Get image passed from Home page
   const capturedImage = location.state?.capturedImage;
@@ -119,23 +122,26 @@ function LogMeal() {
 
     setLoading(true);
     try {
-      const foodData = {
-        foods: validFoods.map(f => ({
-          name: f.name.trim(),
-          ingredients: f.ingredients.split(',').map(i => i.trim()).filter(Boolean)
-        }))
-      };
-      const response = await offlinePost('/meals/manual', foodData);
+      const foods = validFoods.map(f => ({
+        name: f.name.trim(),
+        ingredients: f.ingredients.split(',').map(i => i.trim()).filter(Boolean)
+      }));
 
-      // Handle offline save
-      if (response.data.offline) {
-        setResult({
-          offline: true,
-          foods: foodData.foods.map(f => ({ name: f.name, ingredients: f.ingredients })),
-          notes: 'Saved offline - will sync when connected'
-        });
+      if (isGuest) {
+        await saveGuestMeal(foods);
+        setResult({ foods });
       } else {
-        setResult(response.data);
+        const response = await offlinePost('/meals/manual', { foods });
+
+        if (response.data.offline) {
+          setResult({
+            offline: true,
+            foods: foods.map(f => ({ name: f.name, ingredients: f.ingredients })),
+            notes: 'Saved offline - will sync when connected'
+          });
+        } else {
+          setResult(response.data);
+        }
       }
     } catch (error) {
       console.error('Failed to log meal:', error);

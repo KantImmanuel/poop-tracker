@@ -387,6 +387,20 @@ body {
   text-decoration: none;
 }
 
+.landing-guest-btn {
+  display: block;
+  margin: 12px auto 0;
+  background: none;
+  border: 2px solid #E8D9C8;
+  border-radius: 16px;
+  color: #7A5A44;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 28px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .landing-hero-signin {
   margin-top: 16px;
   font-size: 14px;
