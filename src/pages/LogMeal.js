@@ -412,28 +412,23 @@ function LogMeal() {
             </div>
 
             {!result && !loading && (
-              <>
-                <p style={{ fontSize: '13px', color: '#7A5A44', textAlign: 'center', margin: '12px 0 0' }}>
-                  Tip: Show the inside of your food for better results — bite into it or slice it open.
-                </p>
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  marginTop: '16px',
-                  position: 'sticky',
-                  bottom: '80px',
-                  background: '#FFF3E3',
-                  padding: '12px 0',
-                  zIndex: 10
-                }}>
-                  <button className="btn btn-outline" onClick={handleRetake}>
-                    Retake
-                  </button>
-                  <button className="btn btn-primary" onClick={handleSubmit}>
-                    Analyze
-                  </button>
-                </div>
-              </>
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                marginTop: '16px',
+                position: 'sticky',
+                bottom: '80px',
+                background: '#FFF3E3',
+                padding: '12px 0',
+                zIndex: 10
+              }}>
+                <button className="btn btn-outline" onClick={handleRetake}>
+                  Retake
+                </button>
+                <button className="btn btn-primary" onClick={handleSubmit}>
+                  Analyze
+                </button>
+              </div>
             )}
 
             {loading && (
