@@ -9,6 +9,7 @@ import Landing from './pages/Landing';
 import LogMeal from './pages/LogMeal';
 import History from './pages/History';
 import Insights from './pages/Insights';
+import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Privacy from './pages/Privacy';
@@ -87,6 +88,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Insights />
+                <BottomNav />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
                 <BottomNav />
               </ProtectedRoute>
             }

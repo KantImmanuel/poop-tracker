@@ -270,6 +270,17 @@ async function captureScreenshots(baseUrl) {
   await calibrationPage.screenshot({ path: path.join(OUT, 'insights-calibration.png'), fullPage: false });
   await calibrationPage.close();
 
+  // ── 7. Settings screen ──────────────────────────────────────────────────
+  console.log('Capturing: settings.png');
+  const settingsPage = await context.newPage();
+  await interceptAPIs(settingsPage);
+  await settingsPage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(settingsPage);
+  await settingsPage.goto(`${baseUrl}/settings`, { waitUntil: 'networkidle' });
+  await settingsPage.waitForTimeout(500);
+  await settingsPage.screenshot({ path: path.join(OUT, 'settings.png'), fullPage: false });
+  await settingsPage.close();
+
   await browser.close();
   console.log(`\nAll screenshots saved to ${OUT}/`);
 }

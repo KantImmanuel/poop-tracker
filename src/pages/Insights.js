@@ -1,22 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 import { isReadyForInsights } from '../utils/insightReadiness';
 
 function Insights() {
-  const { logout } = useAuth();
   const navigate = useNavigate();
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [pwLoading, setPwLoading] = useState(false);
-  const [pwError, setPwError] = useState('');
-  const [pwSuccess, setPwSuccess] = useState(false);
 
   useEffect(() => {
     fetchInsights();
@@ -54,49 +45,6 @@ function Insights() {
     }
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    setPwError('');
-    if (newPassword.length < 6) {
-      setPwError('New password must be at least 6 characters');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPwError('Passwords do not match');
-      return;
-    }
-    setPwLoading(true);
-    try {
-      await api.put('/auth/password', { currentPassword, newPassword });
-      setPwSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setTimeout(() => {
-        setPwSuccess(false);
-        setShowChangePassword(false);
-      }, 2000);
-    } catch (error) {
-      setPwError(error.response?.data?.message || 'Failed to change password');
-    } finally {
-      setPwLoading(false);
-    }
-  };
-
-  const signOutStyle = {
-    position: 'absolute',
-    top: '24px',
-    right: '0',
-    background: 'none',
-    border: 'none',
-    color: '#7A5A44',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    padding: '4px 8px',
-    fontFamily: 'inherit'
-  };
-
   const renderProgressRow = (label, count, target, last = false) => {
     const done = count >= target;
     const pct = Math.min(100, (count / target) * 100);
@@ -124,8 +72,7 @@ function Insights() {
   if (loading) {
     return (
       <div className="page">
-        <div className="page-header" style={{ position: 'relative' }}>
-          <button onClick={logout} style={signOutStyle}>Sign Out</button>
+        <div className="page-header">
           <h1 className="page-title">Insights</h1>
         </div>
         <div className="loading-container">
@@ -137,8 +84,7 @@ function Insights() {
 
   return (
     <div className="page">
-      <div className="page-header" style={{ position: 'relative' }}>
-        <button onClick={logout} style={signOutStyle}>Sign Out</button>
+      <div className="page-header">
         <h1 className="page-title">Insights</h1>
       </div>
 
@@ -368,113 +314,6 @@ function Insights() {
           </div>
         )}
 
-        {/* ── Change Password ── */}
-        {!showChangePassword ? (
-          <button
-            onClick={() => { setShowChangePassword(true); setPwError(''); setPwSuccess(false); }}
-            style={{
-              background: 'none',
-              border: '2px solid #E8D9C8',
-              borderRadius: '16px',
-              color: '#7A5A44',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              padding: '12px 24px',
-              width: '100%',
-              fontFamily: 'inherit'
-            }}
-          >
-            Change Password
-          </button>
-        ) : (
-          <div className="card">
-            <h3 style={{ margin: '0 0 16px 0' }}>Change Password</h3>
-            {pwSuccess && (
-              <div style={{ background: '#E5EDE5', color: '#3A6B3A', padding: '10px 14px', borderRadius: '12px', marginBottom: '12px', fontSize: '14px', fontWeight: '500' }}>
-                Password updated!
-              </div>
-            )}
-            {pwError && (
-              <div style={{ background: '#F5E3E0', color: '#B8564A', padding: '10px 14px', borderRadius: '12px', marginBottom: '12px', fontSize: '14px', fontWeight: '500' }}>
-                {pwError}
-              </div>
-            )}
-            <form onSubmit={handleChangePassword}>
-              <div className="form-group">
-                <label>Current Password</label>
-                <input
-                  type="password"
-                  className="input"
-                  value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>New Password</label>
-                <input
-                  type="password"
-                  className="input"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div className="form-group">
-                <label>Confirm New Password</label>
-                <input
-                  type="password"
-                  className="input"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  type="submit"
-                  disabled={pwLoading}
-                  style={{
-                    flex: 1,
-                    background: '#7E8B47',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    opacity: pwLoading ? 0.6 : 1
-                  }}
-                >
-                  {pwLoading ? '...' : 'Update'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowChangePassword(false); setPwError(''); }}
-                  style={{
-                    flex: 1,
-                    background: 'none',
-                    border: '2px solid #E8D9C8',
-                    borderRadius: '12px',
-                    padding: '12px',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    color: '#7A5A44',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
       </div>
     </div>
   );
