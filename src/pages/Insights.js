@@ -136,8 +136,14 @@ function Insights() {
           disabled={analyzing || !hasEnoughData}
           style={{ opacity: hasEnoughData ? 1 : 0.5 }}
         >
-          {analyzing ? 'Analyzing...' : 'Analyze My Data'}
+          {analyzing ? 'Analyzing...' : insights?.lastAnalyzed ? 'Re-analyze My Data' : 'Analyze My Data'}
         </button>
+
+        {insights?.lastAnalyzed && !analyzing && (
+          <p style={{ fontSize: '12px', color: '#7A5A44', textAlign: 'center', margin: '-8px 0 12px' }}>
+            Last analyzed {new Date(insights.lastAnalyzed).toLocaleDateString()}
+          </p>
+        )}
 
         {analyzing && (
           <div className="loading-container">

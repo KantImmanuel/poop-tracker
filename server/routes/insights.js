@@ -6,31 +6,44 @@ const { computeCorrelationStats } = require('../services/correlationStats');
 
 const router = express.Router();
 
-// Get correlation insights
+// Get correlation insights (returns saved analysis if available)
 router.get('/correlations', authenticateToken, async (req, res) => {
   try {
-    // Get basic stats
-    const [meals, poops, firstMeal] = await Promise.all([
+    const [meals, poops, firstMeal, savedReport] = await Promise.all([
       req.prisma.meal.count({ where: { userId: req.user.userId } }),
       req.prisma.poopLog.count({ where: { userId: req.user.userId } }),
       req.prisma.meal.findFirst({
         where: { userId: req.user.userId },
         orderBy: { timestamp: 'asc' }
+      }),
+      req.prisma.insightReport.findUnique({
+        where: { userId: req.user.userId }
       })
     ]);
 
-    // Calculate days tracked
     let daysTracked = 0;
     if (firstMeal) {
       const msPerDay = 24 * 60 * 60 * 1000;
       daysTracked = Math.ceil((Date.now() - new Date(firstMeal.timestamp).getTime()) / msPerDay);
     }
 
+    // If we have a saved analysis, return it with fresh stats
+    if (savedReport) {
+      const report = JSON.parse(savedReport.report);
+      return res.json({
+        totalMeals: meals,
+        totalPoops: poops,
+        daysTracked,
+        ...report,
+        lastAnalyzed: savedReport.updatedAt
+      });
+    }
+
     res.json({
       totalMeals: meals,
       totalPoops: poops,
       daysTracked,
-      triggers: [] // Will be populated by analyze endpoint
+      triggers: []
     });
   } catch (error) {
     console.error('Get correlations error:', error);
@@ -93,11 +106,19 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
       daysTracked = Math.ceil((Date.now() - new Date(meals[0].timestamp).getTime()) / msPerDay);
     }
 
+    // Save the analysis to the database
+    await req.prisma.insightReport.upsert({
+      where: { userId: req.user.userId },
+      update: { report: JSON.stringify(analysis) },
+      create: { userId: req.user.userId, report: JSON.stringify(analysis) }
+    });
+
     res.json({
       totalMeals: meals.length,
       totalPoops: poops.length,
       daysTracked,
-      ...analysis
+      ...analysis,
+      lastAnalyzed: new Date()
     });
   } catch (error) {
     console.error('Analyze error:', error);

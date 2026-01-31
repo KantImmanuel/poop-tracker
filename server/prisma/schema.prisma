@@ -8,12 +8,21 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  passwordHash String
-  createdAt    DateTime   @default(now())
-  meals        Meal[]
-  poopLogs     PoopLog[]
+  id            String          @id @default(uuid())
+  email         String          @unique
+  passwordHash  String
+  createdAt     DateTime        @default(now())
+  meals         Meal[]
+  poopLogs      PoopLog[]
+  insightReport InsightReport?
+}
+
+model InsightReport {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  report    String   // JSON string of the full analysis result
+  updatedAt DateTime @updatedAt
 }
 
 model Meal {
