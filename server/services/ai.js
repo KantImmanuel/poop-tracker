@@ -318,69 +318,87 @@ function mockFoodAnalysis() {
   };
 }
 
-// Correlation analysis (uses Claude)
-async function analyzeCorrelations(meals, poops) {
-  if (USE_CLAUDE && meals.length > 0 && poops.length > 0) {
-    return analyzeCorrelationsWithClaude(meals, poops);
-  } else if (USE_OPENAI && meals.length > 0 && poops.length > 0) {
-    return analyzeCorrelationsWithOpenAI(meals, poops);
+// Correlation analysis — now receives pre-computed stats, not raw data
+async function analyzeCorrelations(stats) {
+  const hasData = stats.totalMeals > 0 && stats.totalPoops > 0;
+  if (USE_CLAUDE && hasData) {
+    return analyzeCorrelationsWithClaude(stats);
+  } else if (USE_OPENAI && hasData) {
+    return analyzeCorrelationsWithOpenAI(stats);
   }
-  return mockCorrelationAnalysis(meals);
+  return mockCorrelationAnalysis(stats);
 }
 
-// Claude correlation analysis
-async function analyzeCorrelationsWithClaude(meals, poops) {
-  const prompt = `Analyze this food and bowel movement data to identify potential IBS trigger foods/ingredients.
+// Claude correlation analysis — receives pre-computed stats
+async function analyzeCorrelationsWithClaude(stats) {
+  // Build a readable stats table for Claude
+  const ingredientLines = Object.entries(stats.ingredients)
+    .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
+    .map(([name, d]) =>
+      `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x${d.avgLagHours ? `, median lag ${d.avgLagHours}h` : ''}`
+    )
+    .join('\n');
 
-MEALS (with timestamps and ingredients):
-${JSON.stringify(meals.map(m => ({
-  timestamp: m.timestamp,
-  foods: m.foods.map(f => ({ name: f.name, ingredients: f.ingredients }))
-})), null, 2)}
+  const prompt = `Here are pre-computed statistics from a user's IBS food diary over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements).
 
-BOWEL MOVEMENTS (timestamps, severity, and symptoms):
-${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity, symptoms: p.symptoms || [] })), null, 2)}
+"Suspect" means the ingredient was eaten 6-36 hours before a bowel movement. "Safe" means it was eaten without a bowel movement following in that window.
 
-Look for correlations between specific foods/ingredients and bowel movements/symptoms that occur within 2-24 hours after eating. Consider:
-- Frequency of ingredient consumption before bowel movements
-- Time patterns between eating and symptoms
-- Severity patterns (do certain foods cause more severe symptoms?)
-- Symptom patterns (do certain foods trigger specific symptoms like bloating, cramps, gas, nausea, urgency, or fatigue?)
-- Known IBS trigger categories (FODMAPs, dairy, gluten, caffeine, etc.)
+INGREDIENT STATS:
+${ingredientLines || '(no ingredients with enough data)'}
+
+Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not supported by the data. If data is insufficient, say so.
 
 Return ONLY valid JSON:
 {
+  "summary": "1-2 sentence plain English overview of findings",
   "triggers": [
-    {"name": "ingredient/food name", "confidence": 0.8, "reason": "brief explanation"}
+    {"name": "ingredient name", "confidence": 0.0-1.0, "reason": "brief explanation referencing the numbers"}
   ],
-  "notes": "Summary of findings and recommendations"
+  "safeFoods": [
+    {"name": "ingredient name", "reason": "brief explanation"}
+  ],
+  "timingInsights": "Any observations about timing patterns, or null if insufficient data",
+  "nextSteps": ["actionable recommendation 1", "actionable recommendation 2"],
+  "notes": "Same as summary, for backward compatibility"
 }`;
 
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      system: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers. Focus on common triggers like FODMAPs (garlic, onion, wheat, dairy, certain fruits), caffeine, alcohol, fatty foods, and artificial sweeteners. Pay attention to severity patterns and symptom correlations (bloating, cramps, gas, nausea, urgency, fatigue).',
+      system: 'You are a cautious IBS food diary analyst. You will receive pre-computed statistics about a user\'s meals and bowel movements. Your job is to interpret these numbers — do NOT invent correlations. If the data is insufficient, say so. Only flag ingredients where the pattern is notable (suspectRate above 0.5 with at least 3 occurrences). Use plain language a non-medical person can understand.',
       messages: [{ role: 'user', content: prompt }]
     });
 
     const content = response.content[0].text;
     const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-    return JSON.parse(jsonStr);
+    const result = JSON.parse(jsonStr);
+    // Ensure backward compat
+    if (!result.notes && result.summary) result.notes = result.summary;
+    if (!result.summary && result.notes) result.summary = result.notes;
+    return result;
   } catch (error) {
     console.error('Claude correlation error:', error);
-    return mockCorrelationAnalysis(meals);
+    return mockCorrelationAnalysis(stats);
   }
 }
 
-// OpenAI correlation analysis (fallback)
-async function analyzeCorrelationsWithOpenAI(meals, poops) {
-  const prompt = `Analyze this food and bowel movement data for IBS triggers. Return JSON with triggers array and notes.
+// OpenAI correlation analysis (fallback) — receives pre-computed stats
+async function analyzeCorrelationsWithOpenAI(stats) {
+  const ingredientLines = Object.entries(stats.ingredients)
+    .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
+    .map(([name, d]) =>
+      `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x${d.avgLagHours ? `, median lag ${d.avgLagHours}h` : ''}`
+    )
+    .join('\n');
 
-MEALS: ${JSON.stringify(meals.map(m => ({ timestamp: m.timestamp, foods: m.foods.map(f => ({ name: f.name, ingredients: f.ingredients })) })))}
+  const prompt = `Pre-computed IBS food diary stats over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements). "Suspect" = eaten 6-36h before a bowel movement.
 
-BOWEL MOVEMENTS: ${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, severity: p.severity, symptoms: p.symptoms || [] })))}`;
+INGREDIENT STATS:
+${ingredientLines || '(no data)'}
+
+Return ONLY valid JSON with: summary, triggers (name/confidence/reason), safeFoods (name/reason), timingInsights, nextSteps, notes.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -388,7 +406,7 @@ BOWEL MOVEMENTS: ${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, seve
       messages: [
         {
           role: 'system',
-          content: 'You are an expert nutritionist analyzing food diary data to identify IBS triggers.'
+          content: 'You are a cautious IBS food diary analyst. Interpret the pre-computed numbers — do NOT invent correlations not supported by the data.'
         },
         { role: 'user', content: prompt }
       ],
@@ -398,40 +416,46 @@ BOWEL MOVEMENTS: ${JSON.stringify(poops.map(p => ({ timestamp: p.timestamp, seve
     const content = response.choices[0].message.content;
     const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-    return JSON.parse(jsonStr);
+    const result = JSON.parse(jsonStr);
+    if (!result.notes && result.summary) result.notes = result.summary;
+    if (!result.summary && result.notes) result.summary = result.notes;
+    return result;
   } catch (error) {
     console.error('OpenAI correlation error:', error);
-    return mockCorrelationAnalysis(meals);
+    return mockCorrelationAnalysis(stats);
   }
 }
 
-// Mock correlation analysis
-function mockCorrelationAnalysis(meals) {
-  const ingredientCounts = {};
-  meals.forEach(meal => {
-    if (meal.foods) {
-      meal.foods.forEach(food => {
-        if (food.ingredients) {
-          food.ingredients.forEach(ingredient => {
-            ingredientCounts[ingredient] = (ingredientCounts[ingredient] || 0) + 1;
-          });
-        }
-      });
-    }
-  });
-
-  const commonIngredients = Object.entries(ingredientCounts)
-    .sort((a, b) => b[1] - a[1])
+// Mock correlation analysis — uses pre-computed stats
+function mockCorrelationAnalysis(stats) {
+  const triggers = Object.entries(stats.ingredients || {})
+    .filter(([, d]) => d.suspectRate > 0.5)
+    .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
     .slice(0, 3)
-    .map(([name, count]) => ({
+    .map(([name, d]) => ({
       name,
-      confidence: 0.5,
-      reason: `Appeared ${count} times in your meals`
+      confidence: d.suspectRate,
+      reason: `Eaten ${d.total} times, suspect in ${d.suspect} cases`
     }));
 
+  const safeFoods = Object.entries(stats.ingredients || {})
+    .filter(([, d]) => d.suspectRate <= 0.3 && d.total >= 3)
+    .sort((a, b) => a[1].suspectRate - b[1].suspectRate)
+    .slice(0, 3)
+    .map(([name, d]) => ({
+      name,
+      reason: `Eaten ${d.total} times with low issue rate`
+    }));
+
+  const summary = 'Mock analysis — configure API keys for real AI-powered insights.';
+
   return {
-    triggers: commonIngredients,
-    notes: 'Mock analysis - configure API keys for real AI analysis'
+    summary,
+    triggers,
+    safeFoods,
+    timingInsights: null,
+    nextSteps: ['Configure ANTHROPIC_API_KEY for real analysis', 'Keep logging meals and bowel movements'],
+    notes: summary
   };
 }
 

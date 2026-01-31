@@ -69,13 +69,25 @@ const MOCK_INSIGHTS = {
   totalMeals: 12,
   totalPoops: 8,
   daysTracked: 14,
+  summary: 'Dairy and garlic show the strongest correlation with your symptoms. Meals containing cream or yogurt were followed by issues 75% of the time.',
   triggers: [
-    { name: 'Dairy (cream, yogurt)', confidence: 0.82 },
-    { name: 'Garlic', confidence: 0.65 },
-    { name: 'Wheat / Gluten', confidence: 0.48 },
-    { name: 'Spicy foods', confidence: 0.35 }
+    { name: 'Dairy (cream, yogurt)', confidence: 0.82, reason: 'Present in 6 of 8 meals before symptoms, especially cream-based dishes' },
+    { name: 'Garlic', confidence: 0.65, reason: 'Eaten 10 times, suspect in 6 cases — often paired with dairy' },
+    { name: 'Wheat / Gluten', confidence: 0.48, reason: 'Eaten 8 times, suspect in 4 — may be coincidental with dairy' },
+    { name: 'Spicy foods', confidence: 0.35, reason: 'Only 3 occurrences — not enough data to be confident' }
   ],
-  notes: 'Dairy appears most strongly correlated with symptoms, especially when combined with spicy foods. Consider reducing cream-based dishes.'
+  safeFoods: [
+    { name: 'Rice', reason: 'Eaten 7 times with no issues following' },
+    { name: 'Chicken (plain)', reason: 'Eaten 5 times, only 1 mild episode' },
+    { name: 'Oat milk', reason: 'Used 4 times as a dairy substitute with no issues' }
+  ],
+  timingInsights: 'Most symptoms appear 8-14 hours after eating trigger foods. Garlic-heavy meals tend to cause issues slightly faster (6-10 hours).',
+  nextSteps: [
+    'Try eliminating dairy for 2 weeks and note any changes',
+    'When eating garlic, avoid combining with dairy',
+    'Keep logging — 2 more weeks of data will improve accuracy'
+  ],
+  notes: 'Dairy and garlic show the strongest correlation with your symptoms.'
 };
 
 const MOCK_FOOD_LOGGED = {
@@ -226,7 +238,7 @@ async function captureScreenshots(baseUrl) {
   await injectAuth(insightsPage);
   await insightsPage.goto(`${baseUrl}/insights`, { waitUntil: 'networkidle' });
   await insightsPage.waitForTimeout(800);
-  await insightsPage.screenshot({ path: path.join(OUT, 'insights.png'), fullPage: false });
+  await insightsPage.screenshot({ path: path.join(OUT, 'insights.png'), fullPage: true });
   await insightsPage.close();
 
   await browser.close();

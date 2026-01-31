@@ -2,6 +2,7 @@ const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
 const { aiLimiter } = require('../middleware/rateLimiter');
 const { analyzeCorrelations } = require('../services/ai');
+const { computeCorrelationStats } = require('../services/correlationStats');
 
 const router = express.Router();
 
@@ -66,7 +67,7 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
       });
     }
 
-    // Prepare data for AI analysis
+    // Prepare data for stats computation
     const mealData = meals.map(m => ({
       timestamp: m.timestamp,
       foods: m.foods.map(f => ({
@@ -81,8 +82,9 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
       symptoms: p.symptoms ? JSON.parse(p.symptoms) : []
     }));
 
-    // Run AI correlation analysis
-    const analysis = await analyzeCorrelations(mealData, poopData);
+    // Pre-compute ingredient stats server-side, then send numbers to AI
+    const stats = computeCorrelationStats(mealData, poopData);
+    const analysis = await analyzeCorrelations(stats);
 
     // Calculate days tracked
     let daysTracked = 0;

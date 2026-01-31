@@ -147,7 +147,7 @@ function Insights() {
         )}
 
         {!analyzing && (
-          (!insights || !insights.triggers?.length) ? (
+          (!insights || (!insights.triggers?.length && !insights.summary)) ? (
             <div className="card text-center">
               <p className="text-muted">
                 Keep logging meals and bowel movements. Once you have enough data,
@@ -172,40 +172,92 @@ function Insights() {
             </div>
           ) : (
             <>
-              <div className="card">
-                <h3 style={{ margin: '0 0 16px 0' }}>Potential Triggers</h3>
-                <p style={{ fontSize: '14px', color: '#7A5A44', marginBottom: '16px' }}>
-                  These foods/ingredients appear correlated with increased bowel movements:
-                </p>
-                {insights.triggers.map((trigger, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 0',
-                      borderBottom: index < insights.triggers.length - 1 ? '1px solid #E8D9C8' : 'none'
-                    }}
-                  >
-                    <span style={{ fontWeight: '500' }}>{trigger.name}</span>
-                    <span
+              {/* Section 1: Summary */}
+              {insights.summary && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 12px 0' }}>Summary</h3>
+                  <p style={{ margin: 0, color: '#4A2E1F', lineHeight: '1.5' }}>{insights.summary}</p>
+                </div>
+              )}
+
+              {/* Section 2: Potential Triggers */}
+              {insights.triggers?.length > 0 && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 16px 0' }}>Potential Triggers</h3>
+                  {insights.triggers.map((trigger, index) => (
+                    <div
+                      key={index}
                       style={{
-                        background: trigger.confidence > 0.7 ? '#F5E3E0' : trigger.confidence > 0.4 ? '#F5ECDB' : '#E5EDE5',
-                        color: trigger.confidence > 0.7 ? '#B8564A' : trigger.confidence > 0.4 ? '#B87A2E' : '#5A8A60',
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        fontSize: '14px',
-                        fontWeight: '500'
+                        padding: '12px 0',
+                        borderBottom: index < insights.triggers.length - 1 ? '1px solid #E8D9C8' : 'none'
                       }}
                     >
-                      {Math.round(trigger.confidence * 100)}% likely
-                    </span>
-                  </div>
-                ))}
-              </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: '500' }}>{trigger.name}</span>
+                        <span
+                          style={{
+                            background: trigger.confidence > 0.7 ? '#F5E3E0' : trigger.confidence > 0.4 ? '#F5ECDB' : '#E5EDE5',
+                            color: trigger.confidence > 0.7 ? '#B8564A' : trigger.confidence > 0.4 ? '#B87A2E' : '#5A8A60',
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            fontSize: '14px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {Math.round(trigger.confidence * 100)}% likely
+                        </span>
+                      </div>
+                      {trigger.reason && (
+                        <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#7A5A44' }}>{trigger.reason}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              {insights.notes && (
+              {/* Section 3: Safe Foods */}
+              {insights.safeFoods?.length > 0 && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 16px 0' }}>Safe Foods</h3>
+                  {insights.safeFoods.map((food, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        padding: '10px 0',
+                        borderBottom: index < insights.safeFoods.length - 1 ? '1px solid #E8D9C8' : 'none'
+                      }}
+                    >
+                      <span style={{ fontWeight: '500', color: '#5A8A60' }}>{food.name}</span>
+                      {food.reason && (
+                        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#7A5A44' }}>{food.reason}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Section 4: Timing Insights */}
+              {insights.timingInsights && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 12px 0' }}>Timing</h3>
+                  <p style={{ margin: 0, color: '#4A2E1F', lineHeight: '1.5' }}>{insights.timingInsights}</p>
+                </div>
+              )}
+
+              {/* Section 5: Next Steps */}
+              {insights.nextSteps?.length > 0 && (
+                <div className="card">
+                  <h3 style={{ margin: '0 0 12px 0' }}>Next Steps</h3>
+                  <ul style={{ margin: 0, paddingLeft: '20px', color: '#4A2E1F', lineHeight: '1.8' }}>
+                    {insights.nextSteps.map((step, index) => (
+                      <li key={index}>{step}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Fallback: old-format notes if no new sections present */}
+              {!insights.summary && insights.notes && (
                 <div className="card">
                   <h3 style={{ margin: '0 0 12px 0' }}>Notes</h3>
                   <p style={{ margin: 0, color: '#7A5A44' }}>{insights.notes}</p>
