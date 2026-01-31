@@ -69,6 +69,8 @@ const MOCK_INSIGHTS = {
   totalMeals: 12,
   totalPoops: 8,
   daysTracked: 14,
+  daysCovered: 14,
+  lastAnalyzed: new Date().toISOString(),
   summary: 'Dairy and garlic show the strongest correlation with your symptoms. Meals containing cream or yogurt were followed by issues 75% of the time.',
   triggers: [
     { name: 'Dairy (cream, yogurt)', confidence: 0.82, reason: 'Present in 6 of 8 meals before symptoms, especially cream-based dishes' },

@@ -9,40 +9,54 @@ const router = express.Router();
 // Get correlation insights (returns saved analysis if available)
 router.get('/correlations', authenticateToken, async (req, res) => {
   try {
-    const [meals, poops, firstMeal, savedReport] = await Promise.all([
-      req.prisma.meal.count({ where: { userId: req.user.userId } }),
-      req.prisma.poopLog.count({ where: { userId: req.user.userId } }),
-      req.prisma.meal.findFirst({
-        where: { userId: req.user.userId },
-        orderBy: { timestamp: 'asc' }
-      }),
+    const [savedReport, mealDates, poopDates] = await Promise.all([
       req.prisma.insightReport.findUnique({
         where: { userId: req.user.userId }
+      }),
+      req.prisma.meal.findMany({
+        where: { userId: req.user.userId },
+        select: { timestamp: true },
+        orderBy: { timestamp: 'asc' }
+      }),
+      req.prisma.poopLog.findMany({
+        where: { userId: req.user.userId },
+        select: { timestamp: true }
       })
     ]);
 
+    const totalMeals = mealDates.length;
+    const totalPoops = poopDates.length;
+
     let daysTracked = 0;
-    if (firstMeal) {
+    if (mealDates.length > 0) {
       const msPerDay = 24 * 60 * 60 * 1000;
-      daysTracked = Math.ceil((Date.now() - new Date(firstMeal.timestamp).getTime()) / msPerDay);
+      daysTracked = Math.ceil((Date.now() - new Date(mealDates[0].timestamp).getTime()) / msPerDay);
     }
+
+    const uniqueDays = new Set([
+      ...mealDates.map(m => m.timestamp.toISOString().slice(0, 10)),
+      ...poopDates.map(p => p.timestamp.toISOString().slice(0, 10))
+    ]);
+    const daysCovered = uniqueDays.size;
 
     // If we have a saved analysis, return it with fresh stats
     if (savedReport) {
       const report = JSON.parse(savedReport.report);
       return res.json({
-        totalMeals: meals,
-        totalPoops: poops,
+        totalMeals,
+        totalPoops,
         daysTracked,
+        daysCovered,
         ...report,
         lastAnalyzed: savedReport.updatedAt
       });
     }
 
     res.json({
-      totalMeals: meals,
-      totalPoops: poops,
+      totalMeals,
+      totalPoops,
       daysTracked,
+      daysCovered,
       triggers: []
     });
   } catch (error) {
@@ -70,13 +84,23 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
       })
     ]);
 
-    if (meals.length < 3 || poops.length < 3) {
+    // Check readiness using same logic as frontend
+    const uniqueAnalyzeDays = new Set([
+      ...meals.map(m => m.timestamp.toISOString().slice(0, 10)),
+      ...poops.map(p => p.timestamp.toISOString().slice(0, 10))
+    ]);
+    const daysCovered = uniqueAnalyzeDays.size;
+    const readyForInsights =
+      (meals.length >= 3 && poops.length >= 2) ||
+      (daysCovered >= 2 && meals.length >= 2 && poops.length >= 1);
+
+    if (!readyForInsights) {
       return res.json({
         totalMeals: meals.length,
         totalPoops: poops.length,
         daysTracked: 0,
-        triggers: [],
-        notes: 'Need more data to analyze. Keep logging for at least a week!'
+        daysCovered,
+        triggers: []
       });
     }
 
@@ -117,6 +141,7 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
       totalMeals: meals.length,
       totalPoops: poops.length,
       daysTracked,
+      daysCovered,
       ...analysis,
       lastAnalyzed: new Date()
     });
