@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
-const { aiLimiter } = require('../middleware/rateLimiter');
+const { aiLimiter, guestAiLimiter } = require('../middleware/rateLimiter');
 const { analyzeCorrelations } = require('../services/ai');
 const { computeCorrelationStats } = require('../services/correlationStats');
 
@@ -147,6 +147,72 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Analyze error:', error);
+    res.status(500).json({ message: 'Failed to analyze data' });
+  }
+});
+
+// Guest: analyze data without auth (client sends raw data, no DB save)
+router.post('/analyze-guest', guestAiLimiter, async (req, res) => {
+  try {
+    const { meals, poops } = req.body;
+
+    if (!Array.isArray(meals) || !Array.isArray(poops)) {
+      return res.status(400).json({ message: 'Meals and poops arrays are required' });
+    }
+
+    const uniqueDays = new Set([
+      ...meals.map(m => new Date(m.timestamp).toISOString().slice(0, 10)),
+      ...poops.map(p => new Date(p.timestamp).toISOString().slice(0, 10))
+    ]);
+    const daysCovered = uniqueDays.size;
+    const readyForInsights =
+      (meals.length >= 3 && poops.length >= 2) ||
+      (daysCovered >= 2 && meals.length >= 2 && poops.length >= 1);
+
+    if (!readyForInsights) {
+      return res.json({
+        totalMeals: meals.length,
+        totalPoops: poops.length,
+        daysTracked: daysCovered,
+        daysCovered,
+        triggers: []
+      });
+    }
+
+    const mealData = meals.map(m => ({
+      timestamp: m.timestamp,
+      foods: (m.foods || []).map(f => ({
+        name: f.name,
+        ingredients: Array.isArray(f.ingredients) ? f.ingredients : []
+      }))
+    }));
+
+    const poopData = poops.map(p => ({
+      timestamp: p.timestamp,
+      severity: p.severity,
+      symptoms: Array.isArray(p.symptoms) ? p.symptoms : []
+    }));
+
+    const stats = computeCorrelationStats(mealData, poopData);
+    const analysis = await analyzeCorrelations(stats);
+
+    let daysTracked = 0;
+    if (meals.length > 0) {
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const timestamps = meals.map(m => new Date(m.timestamp).getTime());
+      daysTracked = Math.ceil((Date.now() - Math.min(...timestamps)) / msPerDay);
+    }
+
+    res.json({
+      totalMeals: meals.length,
+      totalPoops: poops.length,
+      daysTracked,
+      daysCovered,
+      ...analysis,
+      lastAnalyzed: new Date()
+    });
+  } catch (error) {
+    console.error('Guest analyze error:', error);
     res.status(500).json({ message: 'Failed to analyze data' });
   }
 });

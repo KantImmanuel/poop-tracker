@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import { getGuestStats } from '../services/guestStorage';
+import { getGuestStats, getGuestMeals, getGuestPoops } from '../services/guestStorage';
 import { isReadyForInsights } from '../utils/insightReadiness';
 
 function Insights() {
@@ -43,8 +43,15 @@ function Insights() {
   const handleAnalyze = async () => {
     setAnalyzing(true);
     try {
-      const response = await api.post('/insights/analyze');
-      setInsights(response.data);
+      if (isGuest) {
+        const meals = await getGuestMeals();
+        const poops = await getGuestPoops();
+        const response = await api.post('/insights/analyze-guest', { meals, poops });
+        setInsights(response.data);
+      } else {
+        const response = await api.post('/insights/analyze');
+        setInsights(response.data);
+      }
     } catch (error) {
       console.error('Failed to analyze:', error);
       alert('Failed to analyze. Please try again.');
@@ -90,7 +97,7 @@ function Insights() {
           </div>
         ) : (<>
         {/* ── Analyze button: visible when ready or has analysis ── */}
-        {(readyForInsights || hasAnalysis) && !analyzing && !isGuest && (
+        {(readyForInsights || hasAnalysis) && !analyzing && (
           <>
             <button
               className="btn btn-primary mb-2"
@@ -112,26 +119,6 @@ function Insights() {
               </p>
             )}
           </>
-        )}
-
-        {/* ── Guest: Sign up to unlock analysis ── */}
-        {isGuest && readyForInsights && !hasAnalysis && (
-          <div className="card text-center">
-            <h3 style={{ margin: '0 0 8px 0', color: '#4A2E1F' }}>Ready for your first analysis</h3>
-            <p style={{ margin: '0 0 16px', color: '#7A5A44', fontSize: '14px', lineHeight: '1.5' }}>
-              You have enough data. Create a free account to unlock AI-powered insights into your food triggers.
-            </p>
-            <button
-              className="btn btn-primary"
-              style={{ width: '100%' }}
-              onClick={() => navigate('/register')}
-            >
-              Sign up to unlock insights
-            </button>
-            <p style={{ fontSize: '12px', color: '#7A5A44', margin: '8px 0 0' }}>
-              Your logged data will be saved to your account.
-            </p>
-          </div>
         )}
 
         {/* ── Analyzing spinner ── */}
@@ -240,7 +227,7 @@ function Insights() {
         )}
 
         {/* ── Ready but no analysis yet (authenticated users only) ── */}
-        {!analyzing && !hasAnalysis && readyForInsights && !isGuest && (
+        {!analyzing && !hasAnalysis && readyForInsights && (
           <div className="card text-center">
             <p style={{ color: '#4A2E1F', lineHeight: '1.5', margin: 0 }}>
               You have enough data for your first analysis. Tap "Analyze My Data" above to get started.

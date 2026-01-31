@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middleware/auth');
-const { aiLimiter } = require('../middleware/rateLimiter');
+const { aiLimiter, guestAiLimiter } = require('../middleware/rateLimiter');
 const { analyzeFoodImage } = require('../services/ai');
 
 const router = express.Router();
@@ -31,6 +31,22 @@ const upload = multer({
     } else {
       cb(new Error('Only image files are allowed'));
     }
+  }
+});
+
+// Guest: analyze image only (no DB save, no auth required)
+router.post('/analyze-guest', guestAiLimiter, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Image is required' });
+    }
+    const aiResult = await analyzeFoodImage(req.file.path);
+    fs.unlink(req.file.path, () => {});
+    res.json(aiResult);
+  } catch (error) {
+    console.error('Guest analyze error:', error);
+    if (req.file) fs.unlink(req.file.path, () => {});
+    res.status(500).json({ message: 'Failed to analyze meal' });
   }
 });
 

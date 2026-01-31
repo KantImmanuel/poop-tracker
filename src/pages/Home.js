@@ -110,17 +110,10 @@ function Home() {
 
       <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', paddingBottom: '80px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {isGuest ? (
-            <button className="btn btn-primary" onClick={() => navigate('/log-meal?manual=true')}>
-              <img src={cameraIcon} alt="" style={{ width: '60px', height: '60px', objectFit: 'contain', flexShrink: 0 }} />
-              Log Food
-            </button>
-          ) : (
-            <label htmlFor="home-photo-input" className="btn btn-primary">
-              <img src={cameraIcon} alt="" style={{ width: '60px', height: '60px', objectFit: 'contain', flexShrink: 0 }} />
-              Capture Food
-            </label>
-          )}
+          <label htmlFor="home-photo-input" className="btn btn-primary">
+            <img src={cameraIcon} alt="" style={{ width: '60px', height: '60px', objectFit: 'contain', flexShrink: 0 }} />
+            Capture Food
+          </label>
 
           {!showSeverityPicker ? (
             <button

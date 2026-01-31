@@ -9,7 +9,7 @@ function LogMeal() {
   const location = useLocation();
   const { isGuest } = useAuth();
   const [searchParams] = useSearchParams();
-  const isManualMode = isGuest || searchParams.get('manual') === 'true';
+  const isManualMode = searchParams.get('manual') === 'true';
 
   // Get image passed from Home page
   const capturedImage = location.state?.capturedImage;
@@ -54,29 +54,43 @@ function LogMeal() {
       const formData = new FormData();
       formData.append('image', image);
 
-      const response = await offlinePost('/meals', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      // Check if saved offline
-      if (response.data.offline) {
-        setResult({
-          offline: true,
-          foods: [{ name: 'Meal saved offline', category: 'Pending sync' }],
-          notes: 'This meal will be analyzed when you\'re back online'
+      if (isGuest) {
+        // Guest: analyze only, save locally
+        const response = await api.post('/meals/analyze-guest', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
-        return;
-      }
-
-      // Check if AI needs clarification (low confidence items)
-      const lowConfidenceFoods = response.data.foods?.filter(f => f.confidence && f.confidence < 0.7);
-      if (lowConfidenceFoods?.length > 0 && response.data.clarificationOptions) {
-        setNeedsClarification(true);
-        setClarificationOptions(response.data.clarificationOptions);
-        setPendingMealId(response.data.id);
-        setResult(response.data);
+        const aiResult = response.data;
+        const foods = (aiResult.foods || []).map(f => ({
+          name: f.name,
+          ingredients: Array.isArray(f.ingredients) ? f.ingredients : []
+        }));
+        await saveGuestMeal(foods);
+        setResult(aiResult);
       } else {
-        setResult(response.data);
+        const response = await offlinePost('/meals', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        // Check if saved offline
+        if (response.data.offline) {
+          setResult({
+            offline: true,
+            foods: [{ name: 'Meal saved offline', category: 'Pending sync' }],
+            notes: 'This meal will be analyzed when you\'re back online'
+          });
+          return;
+        }
+
+        // Check if AI needs clarification (low confidence items)
+        const lowConfidenceFoods = response.data.foods?.filter(f => f.confidence && f.confidence < 0.7);
+        if (lowConfidenceFoods?.length > 0 && response.data.clarificationOptions) {
+          setNeedsClarification(true);
+          setClarificationOptions(response.data.clarificationOptions);
+          setPendingMealId(response.data.id);
+          setResult(response.data);
+        } else {
+          setResult(response.data);
+        }
       }
     } catch (error) {
       console.error('Failed to upload meal:', error);

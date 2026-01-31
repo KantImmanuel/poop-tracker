@@ -56,7 +56,7 @@ function Settings() {
             <div className="card">
               <h3 style={{ margin: '0 0 8px 0' }}>You're using guest mode</h3>
               <p style={{ margin: '0 0 16px', color: '#7A5A44', fontSize: '14px', lineHeight: '1.5' }}>
-                Your data is stored on this device only. Create an account to sync your data, access AI-powered insights, and use photo food logging.
+                Your data is stored on this device only. Create an account to back up your data and access it from any device.
               </p>
               <button
                 className="btn btn-primary"

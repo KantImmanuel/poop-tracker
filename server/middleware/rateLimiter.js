@@ -29,6 +29,18 @@ const aiLimiter = rateLimit({
   validate: { keyGeneratorIpFallback: false },
 });
 
+// Tier 2b: Guest AI — unauthenticated image analysis
+// 5 requests per hour per IP (stricter than authenticated)
+const guestAiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({ message: 'Analysis limit reached. Create a free account for more, or try again in an hour.' });
+  },
+});
+
 // Tier 3: General — all API routes
 // 100 requests per 15 minutes per IP
 const generalLimiter = rateLimit({
@@ -39,4 +51,4 @@ const generalLimiter = rateLimit({
   handler: rateLimitHandler,
 });
 
-module.exports = { authLimiter, aiLimiter, generalLimiter };
+module.exports = { authLimiter, aiLimiter, guestAiLimiter, generalLimiter };
