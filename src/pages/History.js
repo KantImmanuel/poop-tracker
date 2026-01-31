@@ -301,19 +301,6 @@ function History() {
   const weekDays = getWeekDays();
   const monthGrid = getMonthGrid(viewYear, viewMonth);
 
-  if (loading) {
-    return (
-      <div className="page">
-        <div className="page-header">
-          <h1 className="page-title">History</h1>
-        </div>
-        <div className="loading-container">
-          <div className="spinner"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="page">
       <div className="page-header">
@@ -390,7 +377,11 @@ function History() {
         )}
 
         {/* ── Entry list ── */}
-        {entries.length === 0 ? (
+        {loading ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+          </div>
+        ) : entries.length === 0 ? (
           <div className="card text-center">
             <p className="text-muted">
               {selectedDate ? 'No entries on this day.' : 'No entries yet. Start logging!'}

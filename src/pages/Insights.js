@@ -77,19 +77,6 @@ function Insights() {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="page">
-        <div className="page-header">
-          <h1 className="page-title">Insights</h1>
-        </div>
-        <div className="loading-container">
-          <div className="spinner"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="page">
       <div className="page-header">
@@ -97,6 +84,11 @@ function Insights() {
       </div>
 
       <div className="container">
+        {loading ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+          </div>
+        ) : (<>
         {/* ── Analyze button: visible when ready or has analysis ── */}
         {(readyForInsights || hasAnalysis) && !analyzing && !isGuest && (
           <>
@@ -345,6 +337,7 @@ function Insights() {
             )}
           </div>
         )}
+        </>)}
 
       </div>
     </div>
