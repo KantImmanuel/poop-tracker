@@ -576,16 +576,41 @@ body {
   color: #B87A2E;
 }
 
+.landing-insight-badge--green {
+  background: #E5EDE5;
+  color: #5A8A60;
+}
+
+.landing-report-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
 .landing-insight-safe {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 8px;
   padding: 10px 14px;
   background: #E5EDE5;
   border-radius: 12px;
   font-size: 14px;
   color: #4A2E1F;
+}
+
+.landing-insight-safe:first-of-type {
+  margin-top: 0;
+}
+
+.landing-insight-steps {
+  margin: 0;
+  padding-left: 20px;
+  color: #4A2E1F;
+  line-height: 1.8;
+  font-size: 14px;
 }
 
 .landing-insight-safe-icon {

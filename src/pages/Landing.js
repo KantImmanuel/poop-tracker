@@ -63,32 +63,78 @@ function Landing() {
         </div>
       </section>
 
-      {/* ── Example Insight ── */}
+      {/* ── Example Report Cards ── */}
       <section className="landing-section">
-        <div className="landing-insight-card">
-          <p className="landing-insight-eyebrow">Example report</p>
-          <p className="landing-insight-summary">
-            Dairy and garlic show the strongest correlation with your symptoms.
+        <h2 className="landing-section-title">What your report looks like</h2>
+        <div className="landing-report-cards">
+          {/* Summary */}
+          <div className="landing-insight-card">
+            <p className="landing-insight-eyebrow">Summary</p>
+            <p className="landing-insight-summary" style={{ marginBottom: 0 }}>
+              Dairy and garlic show the strongest correlation with your symptoms.
+              Meals containing cream or yogurt were followed by issues 75% of the time.
+            </p>
+          </div>
+
+          {/* Potential Triggers */}
+          <div className="landing-insight-card">
+            <p className="landing-insight-eyebrow">Potential Triggers</p>
+            <div className="landing-insight-row">
+              <span className="landing-insight-label">Dairy</span>
+              <span className="landing-insight-badge landing-insight-badge--red">82% likely</span>
+            </div>
+            <p className="landing-insight-reason">Present in 6 of 8 meals before symptoms</p>
+            <div className="landing-insight-row">
+              <span className="landing-insight-label">Garlic</span>
+              <span className="landing-insight-badge landing-insight-badge--yellow">65% likely</span>
+            </div>
+            <p className="landing-insight-reason">Eaten 10 times, suspect in 6 cases</p>
+            <div className="landing-insight-row">
+              <span className="landing-insight-label">Wheat / Gluten</span>
+              <span className="landing-insight-badge landing-insight-badge--green">48% likely</span>
+            </div>
+            <p className="landing-insight-reason">May be coincidental with dairy</p>
+          </div>
+
+          {/* Safe Foods */}
+          <div className="landing-insight-card">
+            <p className="landing-insight-eyebrow">Safe Foods</p>
+            <div className="landing-insight-safe">
+              <span className="landing-insight-safe-icon">&#10003;</span>
+              <span><strong>Rice</strong> — eaten 7 times with no issues</span>
+            </div>
+            <div className="landing-insight-safe">
+              <span className="landing-insight-safe-icon">&#10003;</span>
+              <span><strong>Chicken</strong> — eaten 5 times, only 1 mild episode</span>
+            </div>
+            <div className="landing-insight-safe">
+              <span className="landing-insight-safe-icon">&#10003;</span>
+              <span><strong>Oat milk</strong> — dairy substitute with no issues</span>
+            </div>
+          </div>
+
+          {/* Timing */}
+          <div className="landing-insight-card">
+            <p className="landing-insight-eyebrow">Timing</p>
+            <p className="landing-insight-summary" style={{ marginBottom: 0 }}>
+              Most symptoms appear 8–14 hours after eating trigger foods.
+              Garlic-heavy meals tend to cause issues slightly faster (6–10 hours).
+            </p>
+          </div>
+
+          {/* Next Steps */}
+          <div className="landing-insight-card">
+            <p className="landing-insight-eyebrow">Next Steps</p>
+            <ul className="landing-insight-steps">
+              <li>Try eliminating dairy for 2 weeks and note any changes</li>
+              <li>When eating garlic, avoid combining with dairy</li>
+              <li>Keep logging — 2 more weeks of data will improve accuracy</li>
+            </ul>
+          </div>
+
+          <p className="landing-insight-disclaimer" style={{ textAlign: 'center' }}>
+            Based on your logged data — not medical advice.
           </p>
-
-          <div className="landing-insight-row">
-            <span className="landing-insight-label">Dairy</span>
-            <span className="landing-insight-badge landing-insight-badge--red">82% likely</span>
-          </div>
-          <p className="landing-insight-reason">Present in 6 of 8 meals before symptoms</p>
-
-          <div className="landing-insight-row">
-            <span className="landing-insight-label">Garlic</span>
-            <span className="landing-insight-badge landing-insight-badge--yellow">65% likely</span>
-          </div>
-          <p className="landing-insight-reason">Eaten 10 times, suspect in 6 cases</p>
-
-          <div className="landing-insight-safe">
-            <span className="landing-insight-safe-icon">&#10003;</span>
-            <span><strong>Rice</strong> — eaten 7 times with no issues</span>
-          </div>
-
-          <p className="landing-insight-disclaimer">Based on your logged data — not medical advice.</p>
         </div>
       </section>
 
