@@ -14,15 +14,91 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle responses and offline errors
+// Refresh token interceptor
+let isRefreshing = false;
+let failedQueue = [];
+
+function processQueue(error, token = null) {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+}
+
+function forceLogout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+  delete api.defaults.headers.common['Authorization'];
+  window.location.href = '/login';
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    // 403 = truly invalid token, force logout
+    if (error.response?.status === 403) {
+      forceLogout();
+      return Promise.reject(error);
     }
+
+    // 401 = expired, attempt refresh (but not for refresh/login/register requests)
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/refresh') &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/register')
+    ) {
+      if (isRefreshing) {
+        // Queue this request while refresh is in progress
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers['Authorization'] = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        isRefreshing = false;
+        forceLogout();
+        return Promise.reject(error);
+      }
+
+      try {
+        // Use raw axios to avoid interceptor recursion
+        const baseURL = api.defaults.baseURL;
+        const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
+
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+
+        processQueue(null, data.token);
+
+        originalRequest.headers['Authorization'] = `Bearer ${data.token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        forceLogout();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
     return Promise.reject(error);
   }
 );

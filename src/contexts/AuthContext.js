@@ -43,8 +43,9 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const wasGuest = isGuest;
     const response = await api.post('/auth/login', { email, password });
-    const { token, user } = response.data;
+    const { token, refreshToken, user } = response.data;
     localStorage.setItem('token', token);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
     localStorage.removeItem('guestMode');
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -61,8 +62,9 @@ export function AuthProvider({ children }) {
   const register = async (email, password) => {
     const wasGuest = isGuest;
     const response = await api.post('/auth/register', { email, password });
-    const { token, user } = response.data;
+    const { token, refreshToken, user } = response.data;
     localStorage.setItem('token', token);
+    localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
     localStorage.removeItem('guestMode');
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -76,8 +78,17 @@ export function AuthProvider({ children }) {
     return user;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      try {
+        await api.post('/auth/logout', { refreshToken });
+      } catch {
+        // Ignore errors — we're logging out anyway
+      }
+    }
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('guestMode');
     delete api.defaults.headers.common['Authorization'];
