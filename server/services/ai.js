@@ -336,6 +336,53 @@ function mockFoodAnalysis() {
   };
 }
 
+// Format ingredient stats grouped by category for AI prompts
+function formatIngredientStats(stats) {
+  const entries = Object.entries(stats.ingredients);
+  if (entries.length === 0) return '(no ingredients with enough data)';
+
+  // Group by category
+  const grouped = {};
+  for (const [name, d] of entries) {
+    const cat = d.category || 'other';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push([name, d]);
+  }
+
+  // Sort: known categories alphabetically, 'other' last
+  const categoryOrder = Object.keys(grouped).sort((a, b) => {
+    if (a === 'other') return 1;
+    if (b === 'other') return -1;
+    return a.localeCompare(b);
+  });
+
+  return categoryOrder.map(cat => {
+    const label = cat === 'other' ? 'Other' : cat.charAt(0).toUpperCase() + cat.slice(1);
+    const lines = grouped[cat]
+      .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
+      .map(([name, d]) => {
+        let line = `  - ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%)`;
+        if (d.severeSuspect > 0) line += `, severe-suspect ${d.severeSuspect}x (${Math.round(d.severeSuspectRate * 100)}%)`;
+        line += `, safe ${d.safe}x`;
+        if (d.avgLagHours) line += `, median lag ${d.avgLagHours}h`;
+        if (d.bristolBreakdown) {
+          const types = Object.entries(d.bristolBreakdown).map(([t, c]) => `Type ${t}×${c}`).join(', ');
+          line += ` [Bristol: ${types}]`;
+        }
+        if (d.topSymptoms && d.topSymptoms.length > 0) {
+          const syms = d.topSymptoms.map(s => `${s.name}×${s.count}`).join(', ');
+          line += ` [symptoms: ${syms}]`;
+        }
+        if (d.lowConfidenceCount > 0) {
+          line += `, uncertain-photo ${d.lowConfidenceCount}x`;
+        }
+        return line;
+      })
+      .join('\n');
+    return `[${label}]\n${lines}`;
+  }).join('\n\n');
+}
+
 // Correlation analysis — now receives pre-computed stats, not raw data
 async function analyzeCorrelations(stats) {
   const hasData = stats.totalMeals > 0 && stats.totalPoops > 0;
@@ -349,25 +396,8 @@ async function analyzeCorrelations(stats) {
 
 // Claude correlation analysis — receives pre-computed stats
 async function analyzeCorrelationsWithClaude(stats) {
-  // Build a readable stats table for Claude
-  const ingredientLines = Object.entries(stats.ingredients)
-    .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
-    .map(([name, d]) => {
-      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%)`;
-      if (d.severeSuspect > 0) line += `, severe-suspect ${d.severeSuspect}x (${Math.round(d.severeSuspectRate * 100)}%)`;
-      line += `, safe ${d.safe}x`;
-      if (d.avgLagHours) line += `, median lag ${d.avgLagHours}h`;
-      if (d.bristolBreakdown) {
-        const types = Object.entries(d.bristolBreakdown).map(([t, c]) => `Type ${t}×${c}`).join(', ');
-        line += ` [Bristol: ${types}]`;
-      }
-      if (d.topSymptoms && d.topSymptoms.length > 0) {
-        const syms = d.topSymptoms.map(s => `${s.name}×${s.count}`).join(', ');
-        line += ` [symptoms: ${syms}]`;
-      }
-      return line;
-    })
-    .join('\n');
+  // Build grouped ingredient stats for the prompt
+  const ingredientLines = formatIngredientStats(stats);
 
   // Overall Bristol distribution
   let bristolSummary = '';
@@ -422,8 +452,8 @@ async function analyzeCorrelationsWithClaude(stats) {
 Bristol Stool Scale: Types 1-2 = constipation, 3-4 = normal/ideal, 5-7 = loose/diarrhea. Per-ingredient Bristol breakdowns show which stool types followed eating that ingredient.
 ${bristolSummary}${symptomSummary}${frequencySummary}${trendSummary}
 
-INGREDIENT STATS:
-${ingredientLines || '(no ingredients with enough data)'}
+INGREDIENT STATS BY CATEGORY:
+${ingredientLines}
 
 Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not supported by the data. If data is insufficient, say so. Use Bristol types to distinguish between constipation-triggering and diarrhea-triggering ingredients when the data supports it.
 
@@ -451,7 +481,11 @@ Return ONLY valid JSON:
 
 IMPORTANT — Temporal trends: If TEMPORAL TREND data is provided, compare the first half and second half of the tracking period. Look for changes in poop frequency, Bristol averages, and symptom counts. If the second half shows improvement (lower Bristol average, fewer symptoms, lower frequency), note this positively and do NOT recommend eliminating foods the user has already stopped eating. If things got worse, note the worsening trend.
 
-IMPORTANT — High-frequency users: If the overall poop frequency is above 2/day, the regular "suspectRate" may be inflated (everything lands in a window). In this case, rely on "severe-suspect" rates (Bristol 5-7 only) to identify true flare triggers. Ingredients with high suspectRate but low severe-suspect rate are likely part of the baseline, not real triggers.`,
+IMPORTANT — High-frequency users: If the overall poop frequency is above 2/day, the regular "suspectRate" may be inflated (everything lands in a window). In this case, rely on "severe-suspect" rates (Bristol 5-7 only) to identify true flare triggers. Ingredients with high suspectRate but low severe-suspect rate are likely part of the baseline, not real triggers.
+
+IMPORTANT — Photo confidence: Ingredients marked with "uncertain-photo" counts were identified from blurry or concealed food photos. Weight these lower in your analysis — mention the uncertainty if flagging them as triggers.
+
+IMPORTANT — Category grouping: Ingredients are grouped by category (dairy, alliums, gluten grains, etc.). When multiple ingredients in the same category show similar patterns, note the category-level pattern (e.g., "dairy as a group appears problematic") rather than listing each ingredient separately.`,
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -471,29 +505,12 @@ IMPORTANT — High-frequency users: If the overall poop frequency is above 2/day
 
 // OpenAI correlation analysis (fallback) — receives pre-computed stats
 async function analyzeCorrelationsWithOpenAI(stats) {
-  const ingredientLines = Object.entries(stats.ingredients)
-    .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
-    .map(([name, d]) => {
-      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%)`;
-      if (d.severeSuspect > 0) line += `, severe-suspect ${d.severeSuspect}x (${Math.round(d.severeSuspectRate * 100)}%)`;
-      line += `, safe ${d.safe}x`;
-      if (d.avgLagHours) line += `, median lag ${d.avgLagHours}h`;
-      if (d.bristolBreakdown) {
-        const types = Object.entries(d.bristolBreakdown).map(([t, c]) => `Type ${t}×${c}`).join(', ');
-        line += ` [Bristol: ${types}]`;
-      }
-      if (d.topSymptoms && d.topSymptoms.length > 0) {
-        const syms = d.topSymptoms.map(s => `${s.name}×${s.count}`).join(', ');
-        line += ` [symptoms: ${syms}]`;
-      }
-      return line;
-    })
-    .join('\n');
+  const ingredientLines = formatIngredientStats(stats);
 
-  const prompt = `Pre-computed IBS food diary stats over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements). "Suspect" = eaten 6-36h before a bowel movement. "Severe-suspect" = eaten before a Bristol 5-7 bowel movement. Bristol Scale: 1-2=constipation, 3-4=normal, 5-7=loose/diarrhea.
+  const prompt = `Pre-computed IBS food diary stats over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements). "Suspect" = eaten 6-36h before a bowel movement. "Severe-suspect" = eaten before a Bristol 5-7 bowel movement. Bristol Scale: 1-2=constipation, 3-4=normal, 5-7=loose/diarrhea. Ingredients marked "uncertain-photo" were identified from blurry photos — weight these lower.
 
-INGREDIENT STATS:
-${ingredientLines || '(no data)'}
+INGREDIENT STATS BY CATEGORY:
+${ingredientLines}
 
 Return ONLY valid JSON with: summary, triggers (name/confidence/reason), safeFoods (name/reason), timingInsights, dietaryTrend, trendNotes, nextSteps, notes.`;
 

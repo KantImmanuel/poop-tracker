@@ -109,7 +109,8 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
       timestamp: m.timestamp,
       foods: m.foods.map(f => ({
         name: f.name,
-        ingredients: f.ingredients ? JSON.parse(f.ingredients) : []
+        ingredients: f.ingredients ? JSON.parse(f.ingredients) : [],
+        confidence: f.confidence
       }))
     }));
 
@@ -183,7 +184,8 @@ router.post('/analyze-guest', guestAiLimiter, async (req, res) => {
       timestamp: m.timestamp,
       foods: (m.foods || []).map(f => ({
         name: f.name,
-        ingredients: Array.isArray(f.ingredients) ? f.ingredients : []
+        ingredients: Array.isArray(f.ingredients) ? f.ingredients : [],
+        confidence: f.confidence != null ? f.confidence : 1.0
       }))
     }));
 

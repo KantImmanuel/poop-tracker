@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "node index.js",
-    "start": "prisma generate && prisma db push --accept-data-loss && node index.js",
+    "start": "prisma generate && prisma db push && node index.js",
+    "test": "jest",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },
@@ -22,6 +23,7 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "prisma": "^5.0.0"
   }
 }

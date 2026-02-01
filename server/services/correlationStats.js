@@ -9,17 +9,23 @@
  * receives numbers, not raw data — reducing hallucination.
  */
 
+const { normalizeIngredient } = require('./ingredientNormalizer');
+
 const WINDOW_MIN_H = 6;
 const WINDOW_MAX_H = 36;
 const MS_PER_H = 60 * 60 * 1000;
 
 function computeCorrelationStats(meals, poops) {
-  const ingredientMap = {}; // name → { suspect, safe, severeSuspect, lags[], bristolTypes[], symptoms[] }
+  const ingredientMap = {}; // name → { suspect, safe, severeSuspect, lowConfidence, lags[], bristolTypes[], symptoms[] }
 
-  const mealTimes = meals.map(m => ({
-    ts: new Date(m.timestamp).getTime(),
-    ingredients: extractIngredients(m)
-  }));
+  const mealTimes = meals.map(m => {
+    const extracted = extractIngredients(m);
+    return {
+      ts: new Date(m.timestamp).getTime(),
+      ingredients: extracted.ingredients,
+      confidence: extracted.confidence
+    };
+  });
 
   const poopData = poops.map(p => ({
     ts: new Date(p.timestamp).getTime(),
@@ -47,10 +53,11 @@ function computeCorrelationStats(meals, poops) {
 
         for (const ing of mt.ingredients) {
           if (!ingredientMap[ing]) {
-            ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lags: [], bristolTypes: [], symptoms: [] };
+            ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [] };
           }
           ingredientMap[ing].suspect++;
           if (isSevere) ingredientMap[ing].severeSuspect++;
+          if (mt.confidence < 0.7) ingredientMap[ing].lowConfidence++;
           ingredientMap[ing].lags.push(lagH);
           if (poop.bristol) ingredientMap[ing].bristolTypes.push(poop.bristol);
           if (poop.symptoms.length > 0) ingredientMap[ing].symptoms.push(...poop.symptoms);
@@ -64,9 +71,10 @@ function computeCorrelationStats(meals, poops) {
     if (!suspectMealIdx.has(i)) {
       for (const ing of mealTimes[i].ingredients) {
         if (!ingredientMap[ing]) {
-          ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lags: [], bristolTypes: [], symptoms: [] };
+          ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [] };
         }
         ingredientMap[ing].safe++;
+        if (mealTimes[i].confidence < 0.7) ingredientMap[ing].lowConfidence++;
       }
     }
   }
@@ -77,6 +85,8 @@ function computeCorrelationStats(meals, poops) {
     const total = data.suspect + data.safe;
     if (total < 2) continue;
 
+    const { category } = normalizeIngredient(name);
+
     const entry = {
       total,
       suspect: data.suspect,
@@ -86,7 +96,9 @@ function computeCorrelationStats(meals, poops) {
       severeSuspectRate: +(data.severeSuspect / total).toFixed(2),
       avgLagHours: data.lags.length > 0
         ? +median(data.lags).toFixed(1)
-        : null
+        : null,
+      category,
+      lowConfidenceCount: data.lowConfidence
     };
 
     // Include Bristol type breakdown if available
@@ -195,16 +207,21 @@ function computeCorrelationStats(meals, poops) {
 
 function extractIngredients(meal) {
   const set = new Set();
+  let minConfidence = 1.0;
   if (meal.foods) {
     for (const food of meal.foods) {
+      if (food.confidence != null && food.confidence < minConfidence) {
+        minConfidence = food.confidence;
+      }
       if (food.ingredients && Array.isArray(food.ingredients)) {
         for (const ing of food.ingredients) {
-          set.add(ing.toLowerCase().trim());
+          const { canonical } = normalizeIngredient(ing);
+          set.add(canonical);
         }
       }
     }
   }
-  return [...set];
+  return { ingredients: [...set], confidence: minConfidence };
 }
 
 function median(arr) {
