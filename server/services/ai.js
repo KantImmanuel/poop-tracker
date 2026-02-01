@@ -352,19 +352,52 @@ async function analyzeCorrelationsWithClaude(stats) {
   // Build a readable stats table for Claude
   const ingredientLines = Object.entries(stats.ingredients)
     .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
-    .map(([name, d]) =>
-      `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x${d.avgLagHours ? `, median lag ${d.avgLagHours}h` : ''}`
-    )
+    .map(([name, d]) => {
+      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x`;
+      if (d.avgLagHours) line += `, median lag ${d.avgLagHours}h`;
+      if (d.bristolBreakdown) {
+        const types = Object.entries(d.bristolBreakdown).map(([t, c]) => `Type ${t}×${c}`).join(', ');
+        line += ` [Bristol: ${types}]`;
+      }
+      if (d.topSymptoms && d.topSymptoms.length > 0) {
+        const syms = d.topSymptoms.map(s => `${s.name}×${s.count}`).join(', ');
+        line += ` [symptoms: ${syms}]`;
+      }
+      return line;
+    })
     .join('\n');
+
+  // Overall Bristol distribution
+  let bristolSummary = '';
+  if (stats.bristolDistribution) {
+    const types = Object.entries(stats.bristolDistribution)
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([t, c]) => `Type ${t}: ${c}`)
+      .join(', ');
+    bristolSummary = `\nOVERALL BRISTOL DISTRIBUTION: ${types}`;
+  }
+
+  // Overall symptom distribution
+  let symptomSummary = '';
+  if (stats.symptomDistribution) {
+    const syms = Object.entries(stats.symptomDistribution)
+      .sort((a, b) => b[1] - a[1])
+      .map(([s, c]) => `${s}: ${c}`)
+      .join(', ');
+    symptomSummary = `\nOVERALL SYMPTOM COUNTS: ${syms}`;
+  }
 
   const prompt = `Here are pre-computed statistics from a user's IBS food diary over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements).
 
 "Suspect" means the ingredient was eaten 6-36 hours before a bowel movement. "Safe" means it was eaten without a bowel movement following in that window.
 
+Bristol Stool Scale: Types 1-2 = constipation, 3-4 = normal/ideal, 5-7 = loose/diarrhea. Per-ingredient Bristol breakdowns show which stool types followed eating that ingredient.
+${bristolSummary}${symptomSummary}
+
 INGREDIENT STATS:
 ${ingredientLines || '(no ingredients with enough data)'}
 
-Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not supported by the data. If data is insufficient, say so.
+Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not supported by the data. If data is insufficient, say so. Use Bristol types to distinguish between constipation-triggering and diarrhea-triggering ingredients when the data supports it.
 
 Return ONLY valid JSON:
 {
@@ -406,12 +439,22 @@ Return ONLY valid JSON:
 async function analyzeCorrelationsWithOpenAI(stats) {
   const ingredientLines = Object.entries(stats.ingredients)
     .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
-    .map(([name, d]) =>
-      `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x${d.avgLagHours ? `, median lag ${d.avgLagHours}h` : ''}`
-    )
+    .map(([name, d]) => {
+      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x`;
+      if (d.avgLagHours) line += `, median lag ${d.avgLagHours}h`;
+      if (d.bristolBreakdown) {
+        const types = Object.entries(d.bristolBreakdown).map(([t, c]) => `Type ${t}×${c}`).join(', ');
+        line += ` [Bristol: ${types}]`;
+      }
+      if (d.topSymptoms && d.topSymptoms.length > 0) {
+        const syms = d.topSymptoms.map(s => `${s.name}×${s.count}`).join(', ');
+        line += ` [symptoms: ${syms}]`;
+      }
+      return line;
+    })
     .join('\n');
 
-  const prompt = `Pre-computed IBS food diary stats over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements). "Suspect" = eaten 6-36h before a bowel movement.
+  const prompt = `Pre-computed IBS food diary stats over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements). "Suspect" = eaten 6-36h before a bowel movement. Bristol Scale: 1-2=constipation, 3-4=normal, 5-7=loose/diarrhea.
 
 INGREDIENT STATS:
 ${ingredientLines || '(no data)'}

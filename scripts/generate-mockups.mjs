@@ -227,6 +227,46 @@ async function captureScreenshots(baseUrl) {
   await loggedPage.screenshot({ path: path.join(OUT, 'food-logged.png'), fullPage: false });
   await loggedPage.close();
 
+  // ── 3. Food analysis result (photo → AI detected foods + ingredients) ──
+  console.log('Capturing: food-analysis.png');
+  const analysisPage = await context.newPage();
+  await interceptAPIs(analysisPage);
+  await analysisPage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(analysisPage);
+  await analysisPage.goto(`${baseUrl}/log-meal`, { waitUntil: 'networkidle' });
+  await analysisPage.waitForTimeout(300);
+  // Create a synthetic food-colored image and inject it into the file input
+  await analysisPage.evaluate(async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400; canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+    gradient.addColorStop(0, '#D4A054');
+    gradient.addColorStop(1, '#C4862E');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 400, 300);
+    // Draw some darker circles to look vaguely food-like
+    ctx.fillStyle = '#B87030';
+    ctx.beginPath(); ctx.arc(120, 150, 60, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#A05A20';
+    ctx.beginPath(); ctx.arc(280, 130, 50, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#E0C080';
+    ctx.beginPath(); ctx.arc(200, 200, 40, 0, Math.PI * 2); ctx.fill();
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+    const file = new File([blob], 'food.jpg', { type: 'image/jpeg' });
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    const input = document.querySelector('input[type="file"]');
+    input.files = dataTransfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await analysisPage.waitForTimeout(500);
+  // Click Analyze to submit the photo
+  await analysisPage.click('button:has-text("Analyze")');
+  await analysisPage.waitForTimeout(1000);
+  await analysisPage.screenshot({ path: path.join(OUT, 'food-analysis.png'), fullPage: true });
+  await analysisPage.close();
+
   // ── 4. Log Poop screen (severity + symptom picker) ─────────────────────
   console.log('Capturing: log-poop.png');
   const poopPage = await context.newPage();
