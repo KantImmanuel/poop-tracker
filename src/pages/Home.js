@@ -13,6 +13,8 @@ const SYMPTOM_OPTIONS = [
   { val: 'nausea', emoji: '🤢', label: 'Nausea' },
   { val: 'urgency', emoji: '🏃', label: 'Urgency' },
   { val: 'fatigue', emoji: '😴', label: 'Fatigue' },
+  { val: 'blood', emoji: '🩸', label: 'Blood' },
+  { val: 'mucus', emoji: '💧', label: 'Mucus' },
 ];
 
 const BRISTOL_TYPES = [

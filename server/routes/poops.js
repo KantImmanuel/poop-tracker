@@ -2,7 +2,7 @@ const express = require('express');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
-const VALID_SYMPTOMS = ['bloating', 'cramps', 'gas', 'nausea', 'urgency', 'fatigue'];
+const VALID_SYMPTOMS = ['bloating', 'cramps', 'gas', 'nausea', 'urgency', 'fatigue', 'blood', 'mucus'];
 
 // Get all poop logs (optionally filtered by date)
 router.get('/', authenticateToken, async (req, res) => {

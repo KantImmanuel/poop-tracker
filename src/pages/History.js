@@ -5,7 +5,8 @@ import { getGuestMeals, getGuestPoops, deleteGuestMeal, deleteGuestPoop, updateG
 
 const SYMPTOM_EMOJI = {
   bloating: '🫧', cramps: '🤕', gas: '💨',
-  nausea: '🤢', urgency: '🏃', fatigue: '😴'
+  nausea: '🤢', urgency: '🏃', fatigue: '😴',
+  blood: '🩸', mucus: '💧'
 };
 const SYMPTOM_OPTIONS = Object.entries(SYMPTOM_EMOJI).map(([val, emoji]) => ({ val, emoji }));
 

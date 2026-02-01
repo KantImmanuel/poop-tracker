@@ -54,7 +54,7 @@ model PoopLog {
   user      User     @relation(fields: [userId], references: [id])
   timestamp DateTime @default(now())
   severity  String?  // Bristol scale: "1"-"7" (legacy: mild, moderate, severe)
-  symptoms  String?  // JSON array: ["bloating", "cramps", "gas", "nausea", "urgency", "fatigue"]
+  symptoms  String?  // JSON array: ["bloating", "cramps", "gas", "nausea", "urgency", "fatigue", "blood", "mucus"]
 
   @@index([userId, timestamp])
 }
