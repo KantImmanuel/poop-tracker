@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const sharp = require('sharp');
+const logger = require('./logger');
 
 // Determine which AI providers to use
 const USE_GOOGLE_VISION = !!process.env.GOOGLE_CLOUD_API_KEY;
@@ -21,7 +22,7 @@ let anthropic = null;
 let openai = null;
 
 if (USE_GOOGLE_VISION) {
-  console.log('AI Service: Using Google Cloud Vision for image analysis');
+  logger.info('AI Service: Using Google Cloud Vision for image analysis');
 }
 
 if (USE_CLAUDE) {
@@ -29,7 +30,7 @@ if (USE_CLAUDE) {
   anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
   });
-  console.log('AI Service: Using Claude for food/ingredient analysis');
+  logger.info('AI Service: Using Claude for food/ingredient analysis');
 }
 
 if (USE_OPENAI) {
@@ -38,12 +39,12 @@ if (USE_OPENAI) {
     apiKey: process.env.OPENAI_API_KEY
   });
   if (!USE_CLAUDE) {
-    console.log('AI Service: Using OpenAI for analysis');
+    logger.info('AI Service: Using OpenAI for analysis');
   }
 }
 
 if (!USE_GOOGLE_VISION && !USE_CLAUDE && !USE_OPENAI) {
-  console.log('AI Service: Using mock responses (set GOOGLE_CLOUD_API_KEY + ANTHROPIC_API_KEY for real AI)');
+  logger.info('AI Service: Using mock responses (set GOOGLE_CLOUD_API_KEY + ANTHROPIC_API_KEY for real AI)');
 }
 
 // Compress image to stay under Claude's 5 MB base64 limit (~3.75 MB raw)
@@ -96,7 +97,7 @@ async function analyzeWithGoogleVisionAndClaude(imagePath) {
     const visionData = await visionResponse.json();
 
     if (visionData.error) {
-      console.error('Google Vision error:', visionData.error);
+      logger.error({ err: visionData.error }, 'Google Vision API error');
       return analyzeWithClaude(imagePath);
     }
 
@@ -195,7 +196,7 @@ Return ONLY valid JSON:
     return JSON.parse(jsonStr);
 
   } catch (error) {
-    console.error('Google Vision + Claude error:', error);
+    logger.error({ err: error }, 'Google Vision + Claude analysis failed');
     // Fall back to Claude-only
     if (USE_CLAUDE) {
       return analyzeWithClaude(imagePath);
@@ -277,7 +278,7 @@ Return ONLY valid JSON:
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
     return JSON.parse(jsonStr);
   } catch (error) {
-    console.error('Claude analysis error:', error);
+    logger.error({ err: error }, 'Claude analysis failed');
     return mockFoodAnalysis();
   }
 }
@@ -315,7 +316,7 @@ async function analyzeWithOpenAI(imagePath) {
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
     return JSON.parse(jsonStr);
   } catch (error) {
-    console.error('OpenAI analysis error:', error);
+    logger.error({ err: error }, 'OpenAI analysis failed');
     return mockFoodAnalysis();
   }
 }
@@ -375,6 +376,12 @@ function formatIngredientStats(stats) {
         }
         if (d.lowConfidenceCount > 0) {
           line += `, uncertain-photo ${d.lowConfidenceCount}x`;
+        }
+        if (d.topCoOccurrences && d.topCoOccurrences.length > 0) {
+          const coStr = d.topCoOccurrences
+            .map(c => `${c.ingredient} (${c.sharedMeals}/${d.total} meals, ${c.sharedSuspectMeals} suspect)`)
+            .join(', ');
+          line += `\n      co-occurs with: ${coStr}`;
         }
         return line;
       })
@@ -455,6 +462,8 @@ ${bristolSummary}${symptomSummary}${frequencySummary}${trendSummary}
 INGREDIENT STATS BY CATEGORY:
 ${ingredientLines}
 
+Co-occurrence data shows which ingredients frequently appear together in the same meals, with counts of shared total and suspect meals. Use this to identify confounded ingredients that cannot be distinguished from each other.
+
 Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not supported by the data. If data is insufficient, say so. Use Bristol types to distinguish between constipation-triggering and diarrhea-triggering ingredients when the data supports it.
 
 Return ONLY valid JSON:
@@ -485,7 +494,9 @@ IMPORTANT — High-frequency users: If the overall poop frequency is above 2/day
 
 IMPORTANT — Photo confidence: Ingredients marked with "uncertain-photo" counts were identified from blurry or concealed food photos. Weight these lower in your analysis — mention the uncertainty if flagging them as triggers.
 
-IMPORTANT — Category grouping: Ingredients are grouped by category (dairy, alliums, gluten grains, etc.). When multiple ingredients in the same category show similar patterns, note the category-level pattern (e.g., "dairy as a group appears problematic") rather than listing each ingredient separately.`,
+IMPORTANT — Category grouping: Ingredients are grouped by category (dairy, alliums, gluten grains, etc.). When multiple ingredients in the same category show similar patterns, note the category-level pattern (e.g., "dairy as a group appears problematic") rather than listing each ingredient separately.
+
+IMPORTANT — Ingredient co-occurrence: Some ingredients frequently appear together in the same meals (shown as "co-occurs with" data). When two ingredients have high co-occurrence (appearing together in >70% of meals), their suspect rates are confounded — you cannot determine which is the actual trigger. Note this explicitly when flagging co-occurring triggers, and recommend elimination experiments to disambiguate (e.g., "try eating cheese without garlic to isolate the trigger").`,
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -498,7 +509,7 @@ IMPORTANT — Category grouping: Ingredients are grouped by category (dairy, all
     if (!result.summary && result.notes) result.summary = result.notes;
     return result;
   } catch (error) {
-    console.error('Claude correlation error:', error);
+    logger.error({ err: error }, 'Claude correlation analysis failed');
     return mockCorrelationAnalysis(stats);
   }
 }
@@ -535,7 +546,7 @@ Return ONLY valid JSON with: summary, triggers (name/confidence/reason), safeFoo
     if (!result.summary && result.notes) result.summary = result.notes;
     return result;
   } catch (error) {
-    console.error('OpenAI correlation error:', error);
+    logger.error({ err: error }, 'OpenAI correlation analysis failed');
     return mockCorrelationAnalysis(stats);
   }
 }

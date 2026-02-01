@@ -16,7 +16,7 @@ const WINDOW_MAX_H = 36;
 const MS_PER_H = 60 * 60 * 1000;
 
 function computeCorrelationStats(meals, poops) {
-  const ingredientMap = {}; // name → { suspect, safe, severeSuspect, lowConfidence, lags[], bristolTypes[], symptoms[] }
+  const ingredientMap = {}; // name → { suspect, safe, severeSuspect, lowConfidence, lags[], bristolTypes[], symptoms[], coOccurrences{} }
 
   const mealTimes = meals.map(m => {
     const extracted = extractIngredients(m);
@@ -26,6 +26,22 @@ function computeCorrelationStats(meals, poops) {
       confidence: extracted.confidence
     };
   });
+
+  // Compute total co-occurrence: which ingredients appear together in the same meal
+  const initEntry = () => ({ suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [], coOccurrences: {} });
+  for (const mt of mealTimes) {
+    const ings = mt.ingredients;
+    for (let a = 0; a < ings.length; a++) {
+      if (!ingredientMap[ings[a]]) ingredientMap[ings[a]] = initEntry();
+      for (let b = a + 1; b < ings.length; b++) {
+        if (!ingredientMap[ings[b]]) ingredientMap[ings[b]] = initEntry();
+        if (!ingredientMap[ings[a]].coOccurrences[ings[b]]) ingredientMap[ings[a]].coOccurrences[ings[b]] = { total: 0, suspect: 0 };
+        ingredientMap[ings[a]].coOccurrences[ings[b]].total++;
+        if (!ingredientMap[ings[b]].coOccurrences[ings[a]]) ingredientMap[ings[b]].coOccurrences[ings[a]] = { total: 0, suspect: 0 };
+        ingredientMap[ings[b]].coOccurrences[ings[a]].total++;
+      }
+    }
+  }
 
   const poopData = poops.map(p => ({
     ts: new Date(p.timestamp).getTime(),
@@ -53,7 +69,7 @@ function computeCorrelationStats(meals, poops) {
 
         for (const ing of mt.ingredients) {
           if (!ingredientMap[ing]) {
-            ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [] };
+            ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [], coOccurrences: {} };
           }
           ingredientMap[ing].suspect++;
           if (isSevere) ingredientMap[ing].severeSuspect++;
@@ -61,6 +77,21 @@ function computeCorrelationStats(meals, poops) {
           ingredientMap[ing].lags.push(lagH);
           if (poop.bristol) ingredientMap[ing].bristolTypes.push(poop.bristol);
           if (poop.symptoms.length > 0) ingredientMap[ing].symptoms.push(...poop.symptoms);
+        }
+      }
+    }
+  }
+
+  // Compute suspect co-occurrence (per suspect meal, not per poop, to avoid inflation)
+  for (const idx of suspectMealIdx) {
+    const ings = mealTimes[idx].ingredients;
+    for (let a = 0; a < ings.length; a++) {
+      for (let b = a + 1; b < ings.length; b++) {
+        if (ingredientMap[ings[a]]?.coOccurrences[ings[b]]) {
+          ingredientMap[ings[a]].coOccurrences[ings[b]].suspect++;
+        }
+        if (ingredientMap[ings[b]]?.coOccurrences[ings[a]]) {
+          ingredientMap[ings[b]].coOccurrences[ings[a]].suspect++;
         }
       }
     }
@@ -121,6 +152,26 @@ function computeCorrelationStats(meals, poops) {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([name, count]) => ({ name, count }));
+    }
+
+    // Include top co-occurrences (only co-ingredients that also pass the threshold)
+    if (Object.keys(data.coOccurrences).length > 0) {
+      const filtered = Object.entries(data.coOccurrences)
+        .filter(([coName]) => {
+          const coData = ingredientMap[coName];
+          return coData && (coData.suspect + coData.safe) >= 2;
+        })
+        .sort((a, b) => b[1].total - a[1].total)
+        .slice(0, 5)
+        .map(([coName, counts]) => ({
+          ingredient: coName,
+          sharedMeals: counts.total,
+          sharedSuspectMeals: counts.suspect,
+          coOccurrenceRate: +(counts.total / total).toFixed(2)
+        }));
+      if (filtered.length > 0) {
+        entry.topCoOccurrences = filtered;
+      }
     }
 
     ingredients[name] = entry;

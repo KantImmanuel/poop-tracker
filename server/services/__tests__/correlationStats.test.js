@@ -360,4 +360,89 @@ describe('computeCorrelationStats', () => {
       expect(stats.ingredients).toEqual({});
     });
   });
+
+  describe('co-occurrence tracking', () => {
+    test('two ingredients in same meal have co-occurrence tracked', () => {
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['garlic', 'cheese']),
+        meal(hoursFrom(BASE, 48), ['garlic', 'cheese']),
+        meal(hoursFrom(BASE, 96), ['garlic', 'rice'])
+      ];
+      const poops = [
+        poop(hoursFrom(BASE, 12)),
+        poop(hoursFrom(BASE, 60))
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+      const garlicCo = stats.ingredients.garlic.topCoOccurrences;
+      expect(garlicCo).toBeDefined();
+      const cheeseEntry = garlicCo.find(c => c.ingredient === 'cheese');
+      expect(cheeseEntry).toBeDefined();
+      expect(cheeseEntry.sharedMeals).toBe(2);
+    });
+
+    test('co-occurrence tracks suspect meals separately from total', () => {
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['garlic', 'cheese']),   // suspect (poop at 12h)
+        meal(hoursFrom(BASE, 48), ['garlic', 'cheese']),  // safe (no poop in window)
+        meal(hoursFrom(BASE, 96), ['garlic', 'cheese'])   // suspect (poop at 108h)
+      ];
+      const poops = [
+        poop(hoursFrom(BASE, 12)),
+        poop(hoursFrom(BASE, 108))
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+      const cheeseEntry = stats.ingredients.garlic.topCoOccurrences.find(c => c.ingredient === 'cheese');
+      expect(cheeseEntry.sharedMeals).toBe(3);
+      expect(cheeseEntry.sharedSuspectMeals).toBe(2);
+    });
+
+    test('single ingredient meal has no co-occurrences', () => {
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['rice']),
+        meal(hoursFrom(BASE, 48), ['rice'])
+      ];
+      const poops = [poop(hoursFrom(BASE, 12))];
+
+      const stats = computeCorrelationStats(meals, poops);
+      expect(stats.ingredients.rice.topCoOccurrences).toBeUndefined();
+    });
+
+    test('co-occurrence limited to top 5', () => {
+      const ings = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+      const meals = [
+        meal(hoursFrom(BASE, 0), ings),
+        meal(hoursFrom(BASE, 48), ings)
+      ];
+      const poops = [poop(hoursFrom(BASE, 12))];
+
+      const stats = computeCorrelationStats(meals, poops);
+      // Each ingredient co-occurs with 6 others, but should only show top 5
+      for (const ing of ings) {
+        if (stats.ingredients[ing]?.topCoOccurrences) {
+          expect(stats.ingredients[ing].topCoOccurrences.length).toBeLessThanOrEqual(5);
+        }
+      }
+    });
+
+    test('deduplication: wheat in two foods counts as 1 co-occurrence', () => {
+      const meals = [
+        {
+          timestamp: hoursFrom(BASE, 0),
+          foods: [
+            { name: 'pasta', ingredients: ['wheat', 'garlic'], confidence: 1.0 },
+            { name: 'bread', ingredients: ['wheat', 'garlic'], confidence: 1.0 }
+          ]
+        },
+        meal(hoursFrom(BASE, 48), ['wheat', 'garlic'])
+      ];
+      const poops = [poop(hoursFrom(BASE, 12))];
+
+      const stats = computeCorrelationStats(meals, poops);
+      const wheatCo = stats.ingredients.wheat.topCoOccurrences;
+      const garlicEntry = wheatCo.find(c => c.ingredient === 'garlic');
+      expect(garlicEntry.sharedMeals).toBe(2); // not 3 (deduped per meal)
+    });
+  });
 });
