@@ -17,6 +17,7 @@ import { chromium } from '@playwright/test';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -235,31 +236,9 @@ async function captureScreenshots(baseUrl) {
   await injectAuth(analysisPage);
   await analysisPage.goto(`${baseUrl}/log-meal`, { waitUntil: 'networkidle' });
   await analysisPage.waitForTimeout(300);
-  // Create a synthetic food-colored image and inject it into the file input
-  await analysisPage.evaluate(async () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 400; canvas.height = 300;
-    const ctx = canvas.getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 400, 300);
-    gradient.addColorStop(0, '#D4A054');
-    gradient.addColorStop(1, '#C4862E');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 400, 300);
-    // Draw some darker circles to look vaguely food-like
-    ctx.fillStyle = '#B87030';
-    ctx.beginPath(); ctx.arc(120, 150, 60, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#A05A20';
-    ctx.beginPath(); ctx.arc(280, 130, 50, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#E0C080';
-    ctx.beginPath(); ctx.arc(200, 200, 40, 0, Math.PI * 2); ctx.fill();
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
-    const file = new File([blob], 'food.jpg', { type: 'image/jpeg' });
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    const input = document.querySelector('input[type="file"]');
-    input.files = dataTransfer.files;
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  });
+  // Inject the real margherita pizza photo into the file input
+  const foodPhotoPath = path.join(__dirname, 'assets', 'food-photo.png');
+  await analysisPage.setInputFiles('input[type="file"]', foodPhotoPath);
   await analysisPage.waitForTimeout(500);
   // Click Analyze to submit the photo
   await analysisPage.click('button:has-text("Analyze")');
