@@ -971,12 +971,12 @@ body {
 }
 
 .history-severity-btn {
-  padding: 6px 14px;
+  padding: 6px 10px;
   border: 1px solid #E8D9C8;
   border-radius: 8px;
   background: white;
   font-family: 'Nunito', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #4A2E1F;
   cursor: pointer;

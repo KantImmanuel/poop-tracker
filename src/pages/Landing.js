@@ -50,7 +50,7 @@ function Landing() {
             <span className="landing-step-num">2</span>
             <span className="landing-step-icon">💩</span>
             <h3>Log your poops</h3>
-            <p>One tap. Pick a severity. Done in under 2 seconds.</p>
+            <p>One tap. Pick your Bristol type. Done in seconds.</p>
           </div>
           <div className="landing-step">
             <span className="landing-step-num">3</span>
@@ -119,7 +119,7 @@ function Landing() {
             </div>
             <div className="landing-insight-safe">
               <span className="landing-insight-safe-icon">&#10003;</span>
-              <span><strong>Chicken</strong> — eaten 5 times, only 1 mild episode</span>
+              <span><strong>Chicken</strong> — eaten 5 times, only 1 loose stool</span>
             </div>
             <div className="landing-insight-safe">
               <span className="landing-insight-safe-icon">&#10003;</span>

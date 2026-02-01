@@ -15,6 +15,67 @@ const SYMPTOM_OPTIONS = [
   { val: 'fatigue', emoji: '😴', label: 'Fatigue' },
 ];
 
+const BRISTOL_TYPES = [
+  { val: '1', label: 'Hard lumps' },
+  { val: '2', label: 'Lumpy' },
+  { val: '3', label: 'Cracked' },
+  { val: '4', label: 'Smooth' },
+  { val: '5', label: 'Soft blobs' },
+  { val: '6', label: 'Mushy' },
+  { val: '7', label: 'Liquid' },
+];
+
+const BRISTOL_ICONS = {
+  '1': (
+    <svg width="28" height="20" viewBox="0 0 28 20">
+      <circle cx="6" cy="6" r="3" fill="#8B7355"/>
+      <circle cx="15" cy="5" r="3.5" fill="#8B7355"/>
+      <circle cx="24" cy="7" r="3" fill="#8B7355"/>
+      <circle cx="10" cy="15" r="3" fill="#8B7355"/>
+      <circle cx="20" cy="15" r="3.5" fill="#8B7355"/>
+    </svg>
+  ),
+  '2': (
+    <svg width="28" height="20" viewBox="0 0 28 20">
+      <ellipse cx="14" cy="10" rx="12" ry="6" fill="#8B7355"/>
+      <circle cx="7" cy="7" r="2.5" fill="#7A6345"/>
+      <circle cx="14" cy="6" r="2.5" fill="#7A6345"/>
+      <circle cx="21" cy="7" r="2.5" fill="#7A6345"/>
+    </svg>
+  ),
+  '3': (
+    <svg width="28" height="20" viewBox="0 0 28 20">
+      <rect x="2" y="5" width="24" height="10" rx="5" fill="#8B7355"/>
+      <line x1="9" y1="6" x2="9" y2="10" stroke="#6B5340" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="14" y1="6" x2="14" y2="9" stroke="#6B5340" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="19" y1="6" x2="19" y2="10" stroke="#6B5340" strokeWidth="1.2" strokeLinecap="round"/>
+    </svg>
+  ),
+  '4': (
+    <svg width="28" height="20" viewBox="0 0 28 20">
+      <rect x="2" y="6" width="24" height="8" rx="4" fill="#8B7355"/>
+    </svg>
+  ),
+  '5': (
+    <svg width="28" height="20" viewBox="0 0 28 20">
+      <ellipse cx="7" cy="9" rx="5" ry="4" fill="#8B7355"/>
+      <ellipse cx="20" cy="8" rx="6" ry="4.5" fill="#8B7355"/>
+      <ellipse cx="13" cy="16" rx="5" ry="3" fill="#8B7355"/>
+    </svg>
+  ),
+  '6': (
+    <svg width="28" height="20" viewBox="0 0 28 20">
+      <path d="M3 12c0-3 2-6 5-7 2-1 4 0 6 0s4-1 6 0c3 1 5 4 5 7s-3 5-11 5-11-2-11-5z" fill="#8B7355" opacity="0.85"/>
+    </svg>
+  ),
+  '7': (
+    <svg width="28" height="20" viewBox="0 0 28 20">
+      <path d="M7 7c1.5-4 3-6 4-6s2 3 2.5 6c.8 4.5-1 8-3.5 8S5.5 11.5 7 7z" fill="#C4A24C" opacity="0.75"/>
+      <path d="M18 5c1-3 2.5-4.5 3.5-4.5s1.5 2 2 4.5c.8 3.5-.5 7-2.5 7S17 8.5 18 5z" fill="#C4A24C" opacity="0.75"/>
+    </svg>
+  ),
+};
+
 function Home() {
   const navigate = useNavigate();
   const { isGuest } = useAuth();
@@ -126,23 +187,34 @@ function Home() {
             </button>
           ) : (
             <div className="card" style={{ padding: '24px' }}>
-              <p style={{ margin: '0 0 20px 0', fontWeight: '700', textAlign: 'center', fontSize: '20px', color: '#4A2E1F' }}>
+              <p style={{ margin: '0 0 4px 0', fontWeight: '700', textAlign: 'center', fontSize: '20px', color: '#4A2E1F' }}>
                 How was it?
               </p>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {[
-                  { val: 'mild', emoji: '😊', label: 'Easy' },
-                  { val: 'moderate', emoji: '😐', label: 'Meh' },
-                  { val: 'severe', emoji: '😣', label: 'Uh-oh' }
-                ].map(s => (
+              <p style={{ margin: '0 0 16px 0', fontSize: '12px', textAlign: 'center', color: '#7A5A44', opacity: 0.7 }}>
+                Bristol Stool Scale
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px' }}>
+                {BRISTOL_TYPES.map(t => (
                   <button
-                    key={s.val}
-                    className={`btn btn-outline${selectedSeverity === s.val ? ' btn-outline-active' : ''}`}
-                    style={{ flex: 1, flexDirection: 'column', gap: '6px' }}
-                    onClick={() => handleSeverityPick(s.val)}
+                    key={t.val}
+                    onClick={() => handleSeverityPick(t.val)}
+                    style={{
+                      width: 'calc(25% - 6px)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '2px',
+                      padding: '8px 2px 6px',
+                      border: selectedSeverity === t.val ? '2px solid #4A2E1F' : '2px solid #E8D5C0',
+                      borderRadius: '12px',
+                      background: selectedSeverity === t.val ? '#F5E6D3' : '#FFF',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
                   >
-                    <span style={{ fontSize: '28px' }}>{s.emoji}</span>
-                    {s.label}
+                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#4A2E1F', opacity: 0.5 }}>{t.val}</span>
+                    {BRISTOL_ICONS[t.val]}
+                    <span style={{ fontSize: '10px', fontWeight: '600', color: '#4A2E1F', lineHeight: 1.2, textAlign: 'center' }}>{t.label}</span>
                   </button>
                 ))}
               </div>

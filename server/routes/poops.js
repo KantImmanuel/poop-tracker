@@ -60,7 +60,7 @@ router.post('/', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { severity, symptoms } = req.body;
-    const valid = ['mild', 'moderate', 'severe', null];
+    const valid = ['1', '2', '3', '4', '5', '6', '7', 'mild', 'moderate', 'severe', null];
     if (severity !== undefined && !valid.includes(severity)) {
       return res.status(400).json({ message: 'Invalid severity' });
     }

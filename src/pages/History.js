@@ -9,6 +9,19 @@ const SYMPTOM_EMOJI = {
 };
 const SYMPTOM_OPTIONS = Object.entries(SYMPTOM_EMOJI).map(([val, emoji]) => ({ val, emoji }));
 
+const BRISTOL_LABELS = {
+  '1': 'Type 1 · Hard lumps', '2': 'Type 2 · Lumpy', '3': 'Type 3 · Cracked',
+  '4': 'Type 4 · Smooth', '5': 'Type 5 · Soft blobs', '6': 'Type 6 · Mushy',
+  '7': 'Type 7 · Liquid',
+  'mild': '😊 Easy', 'moderate': '😐 Meh', 'severe': '😣 Uh-oh',
+};
+const BRISTOL_EDIT_OPTIONS = [
+  { val: '1', label: '1 · Hard lumps' }, { val: '2', label: '2 · Lumpy' },
+  { val: '3', label: '3 · Cracked' }, { val: '4', label: '4 · Smooth' },
+  { val: '5', label: '5 · Soft blobs' }, { val: '6', label: '6 · Mushy' },
+  { val: '7', label: '7 · Liquid' },
+];
+
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'];
@@ -420,10 +433,8 @@ function History() {
                             <p style={{ margin: 0, fontWeight: '600', color: '#4A2E1F' }}>
                               Bowel Movement
                               {item.severity && (
-                                <span style={{ marginLeft: '8px', fontWeight: '400' }}>
-                                  {item.severity === 'mild' && '😊 Easy'}
-                                  {item.severity === 'moderate' && '😐 Meh'}
-                                  {item.severity === 'severe' && '😣 Uh-oh'}
+                                <span style={{ marginLeft: '8px', fontWeight: '400', fontSize: '14px' }}>
+                                  {BRISTOL_LABELS[item.severity] || item.severity}
                                 </span>
                               )}
                             </p>
@@ -484,11 +495,7 @@ function History() {
 
                     {isEditing && item.type === 'poop' && (
                       <div className="history-edit-severity" onClick={e => e.stopPropagation()}>
-                        {[
-                          { val: 'mild', label: '😊 Easy' },
-                          { val: 'moderate', label: '😐 Meh' },
-                          { val: 'severe', label: '😣 Uh-oh' }
-                        ].map(s => (
+                        {BRISTOL_EDIT_OPTIONS.map(s => (
                           <button
                             key={s.val}
                             className={`history-severity-btn${editSeverity === s.val ? ' active' : ''}`}

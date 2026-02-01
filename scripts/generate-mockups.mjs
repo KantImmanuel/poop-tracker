@@ -60,9 +60,9 @@ const MOCK_MEALS = [
 ];
 
 const MOCK_POOPS = [
-  { id: 1, timestamp: hourAgo.toISOString(), severity: 'moderate' },
-  { id: 2, timestamp: yesterday.toISOString(), severity: 'mild' },
-  { id: 3, timestamp: twoDaysAgo.toISOString(), severity: 'severe' }
+  { id: 1, timestamp: hourAgo.toISOString(), severity: '4' },
+  { id: 2, timestamp: yesterday.toISOString(), severity: '3' },
+  { id: 3, timestamp: twoDaysAgo.toISOString(), severity: '6' }
 ];
 
 const MOCK_INSIGHTS = {
@@ -80,7 +80,7 @@ const MOCK_INSIGHTS = {
   ],
   safeFoods: [
     { name: 'Rice', reason: 'Eaten 7 times with no issues following' },
-    { name: 'Chicken (plain)', reason: 'Eaten 5 times, only 1 mild episode' },
+    { name: 'Chicken (plain)', reason: 'Eaten 5 times, only 1 loose stool' },
     { name: 'Oat milk', reason: 'Used 4 times as a dairy substitute with no issues' }
   ],
   timingInsights: 'Most symptoms appear 8-14 hours after eating trigger foods. Garlic-heavy meals tend to cause issues slightly faster (6-10 hours).',
@@ -161,7 +161,7 @@ async function interceptAPIs(page, { insightsMock = MOCK_INSIGHTS } = {}) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_FOOD_LOGGED) });
     }
     if (url.includes('/api/poops') && method === 'POST') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, timestamp: new Date().toISOString(), severity: 'moderate' }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 99, timestamp: new Date().toISOString(), severity: '4' }) });
     }
 
     return route.continue();
@@ -235,11 +235,11 @@ async function captureScreenshots(baseUrl) {
   await injectAuth(poopPage);
   await poopPage.goto(baseUrl, { waitUntil: 'networkidle' });
   await poopPage.waitForTimeout(500);
-  // Click "Log Poop" to show severity picker
+  // Click "Log Poop" to show Bristol picker
   await poopPage.click('button:has-text("Log Poop")');
   await poopPage.waitForTimeout(400);
-  // Select "Meh" severity to reveal symptom chips
-  await poopPage.click('button:has-text("Meh")');
+  // Select Bristol Type 4 (Smooth)
+  await poopPage.click('button:has-text("Smooth")');
   await poopPage.waitForTimeout(300);
   // Select a couple of symptoms
   await poopPage.click('button:has-text("Bloating")');
