@@ -1,7 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const pinoHttp = require('pino-http');
 const { PrismaClient } = require('@prisma/client');
+const logger = require('./services/logger');
 
 const { authLimiter, generalLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
@@ -35,6 +37,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === '/api/health' } }));
 
 // Make prisma available to routes
 app.use((req, res, next) => {
@@ -62,7 +65,7 @@ app.get('/api/health', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info({ port: PORT }, 'Server started');
 });
 
 // Graceful shutdown

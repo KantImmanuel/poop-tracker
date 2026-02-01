@@ -50,7 +50,7 @@ router.post('/guest-data', authenticateToken, async (req, res) => {
 
     res.json({ mealsCreated, poopsCreated });
   } catch (error) {
-    console.error('Guest data migration error:', error);
+    req.log.error({ err: error }, 'Guest data migration failed');
     res.status(500).json({ message: 'Failed to migrate guest data' });
   }
 });

@@ -29,7 +29,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json(poops);
   } catch (error) {
-    console.error('Get poops error:', error);
+    req.log.error({ err: error }, 'Failed to fetch poop logs');
     res.status(500).json({ message: 'Failed to fetch poop logs' });
   }
 });
@@ -51,7 +51,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     res.status(201).json(poop);
   } catch (error) {
-    console.error('Create poop error:', error);
+    req.log.error({ err: error }, 'Failed to create poop log');
     res.status(500).json({ message: 'Failed to log poop' });
   }
 });
@@ -90,7 +90,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    console.error('Update poop error:', error);
+    req.log.error({ err: error }, 'Failed to update poop log');
     res.status(500).json({ message: 'Failed to update poop log' });
   }
 });
@@ -115,7 +115,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Poop log deleted' });
   } catch (error) {
-    console.error('Delete poop error:', error);
+    req.log.error({ err: error }, 'Failed to delete poop log');
     res.status(500).json({ message: 'Failed to delete poop log' });
   }
 });

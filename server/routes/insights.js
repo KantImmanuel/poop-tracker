@@ -60,7 +60,7 @@ router.get('/correlations', authenticateToken, async (req, res) => {
       triggers: []
     });
   } catch (error) {
-    console.error('Get correlations error:', error);
+    req.log.error({ err: error }, 'Failed to fetch insights');
     res.status(500).json({ message: 'Failed to fetch insights' });
   }
 });
@@ -147,7 +147,7 @@ router.post('/analyze', authenticateToken, aiLimiter, async (req, res) => {
       lastAnalyzed: new Date()
     });
   } catch (error) {
-    console.error('Analyze error:', error);
+    req.log.error({ err: error }, 'Failed to analyze data');
     res.status(500).json({ message: 'Failed to analyze data' });
   }
 });
@@ -214,7 +214,7 @@ router.post('/analyze-guest', guestAiLimiter, async (req, res) => {
       lastAnalyzed: new Date()
     });
   } catch (error) {
-    console.error('Guest analyze error:', error);
+    req.log.error({ err: error }, 'Guest analysis failed');
     res.status(500).json({ message: 'Failed to analyze data' });
   }
 });
@@ -252,7 +252,7 @@ router.get('/timeline', authenticateToken, async (req, res) => {
 
     res.json(timeline);
   } catch (error) {
-    console.error('Get timeline error:', error);
+    req.log.error({ err: error }, 'Failed to fetch timeline');
     res.status(500).json({ message: 'Failed to fetch timeline' });
   }
 });

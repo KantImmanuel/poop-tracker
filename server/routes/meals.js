@@ -44,7 +44,7 @@ router.post('/analyze-guest', guestAiLimiter, upload.single('image'), async (req
     fs.unlink(req.file.path, () => {});
     res.json(aiResult);
   } catch (error) {
-    console.error('Guest analyze error:', error);
+    req.log.error({ err: error }, 'Guest food analysis failed');
     if (req.file) fs.unlink(req.file.path, () => {});
     res.status(500).json({ message: 'Failed to analyze meal' });
   }
@@ -76,7 +76,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json(meals);
   } catch (error) {
-    console.error('Get meals error:', error);
+    req.log.error({ err: error }, 'Failed to fetch meals');
     res.status(500).json({ message: 'Failed to fetch meals' });
   }
 });
@@ -98,7 +98,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     res.json(meal);
   } catch (error) {
-    console.error('Get meal error:', error);
+    req.log.error({ err: error }, 'Failed to fetch meal');
     res.status(500).json({ message: 'Failed to fetch meal' });
   }
 });
@@ -144,7 +144,7 @@ router.post('/', authenticateToken, aiLimiter, upload.single('image'), async (re
 
     res.status(201).json(response);
   } catch (error) {
-    console.error('Create meal error:', error);
+    req.log.error({ err: error }, 'Failed to create meal');
     res.status(500).json({ message: 'Failed to create meal' });
   }
 });
@@ -186,7 +186,7 @@ router.post('/manual', authenticateToken, async (req, res) => {
 
     res.status(201).json(response);
   } catch (error) {
-    console.error('Create manual meal error:', error);
+    req.log.error({ err: error }, 'Failed to create manual meal');
     res.status(500).json({ message: 'Failed to create meal' });
   }
 });
@@ -224,7 +224,7 @@ router.put('/:id/clarify', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Food updated' });
   } catch (error) {
-    console.error('Clarify food error:', error);
+    req.log.error({ err: error }, 'Failed to clarify food');
     res.status(500).json({ message: 'Failed to update food' });
   }
 });
@@ -273,7 +273,7 @@ router.put('/:id/ingredients', authenticateToken, async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Update ingredients error:', error);
+    req.log.error({ err: error }, 'Failed to update ingredients');
     res.status(500).json({ message: 'Failed to update ingredients' });
   }
 });
@@ -313,7 +313,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    console.error('Update meal error:', error);
+    req.log.error({ err: error }, 'Failed to update meal');
     res.status(500).json({ message: 'Failed to update meal' });
   }
 });
@@ -338,7 +338,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Meal deleted' });
   } catch (error) {
-    console.error('Delete meal error:', error);
+    req.log.error({ err: error }, 'Failed to delete meal');
     res.status(500).json({ message: 'Failed to delete meal' });
   }
 });

@@ -103,7 +103,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json({ items: pageItems, nextCursor, hasMore });
   } catch (error) {
-    console.error('Get history error:', error);
+    req.log.error({ err: error }, 'Failed to fetch history');
     res.status(500).json({ message: 'Failed to fetch history' });
   }
 });
