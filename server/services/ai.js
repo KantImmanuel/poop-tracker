@@ -353,7 +353,9 @@ async function analyzeCorrelationsWithClaude(stats) {
   const ingredientLines = Object.entries(stats.ingredients)
     .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
     .map(([name, d]) => {
-      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x`;
+      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%)`;
+      if (d.severeSuspect > 0) line += `, severe-suspect ${d.severeSuspect}x (${Math.round(d.severeSuspectRate * 100)}%)`;
+      line += `, safe ${d.safe}x`;
       if (d.avgLagHours) line += `, median lag ${d.avgLagHours}h`;
       if (d.bristolBreakdown) {
         const types = Object.entries(d.bristolBreakdown).map(([t, c]) => `Type ${t}×${c}`).join(', ');
@@ -387,12 +389,38 @@ async function analyzeCorrelationsWithClaude(stats) {
     symptomSummary = `\nOVERALL SYMPTOM COUNTS: ${syms}`;
   }
 
+  // Poop frequency context
+  let frequencySummary = '';
+  if (stats.poopsPerDay) {
+    frequencySummary = `\nOVERALL POOP FREQUENCY: ${stats.poopsPerDay}/day`;
+  }
+
+  // Temporal trend section
+  let trendSummary = '';
+  if (stats.temporalTrend) {
+    const t = stats.temporalTrend;
+    const fmtHalf = (h, label) => {
+      let s = `${label}: ${h.mealCount} meals, ${h.poopCount} poops (${h.poopsPerDay}/day)`;
+      if (h.avgBristol) s += `, avg Bristol ${h.avgBristol}`;
+      if (h.bristolDistribution) {
+        const types = Object.entries(h.bristolDistribution).sort((a, b) => Number(a[0]) - Number(b[0])).map(([t, c]) => `Type ${t}: ${c}`).join(', ');
+        s += ` [${types}]`;
+      }
+      if (h.symptomCounts) {
+        const syms = Object.entries(h.symptomCounts).sort((a, b) => b[1] - a[1]).map(([s, c]) => `${s}: ${c}`).join(', ');
+        s += ` [symptoms: ${syms}]`;
+      }
+      return s;
+    };
+    trendSummary = `\n\nTEMPORAL TREND (split at ${t.midpointDate}):\n${fmtHalf(t.firstHalf, 'First half')}\n${fmtHalf(t.secondHalf, 'Second half')}`;
+  }
+
   const prompt = `Here are pre-computed statistics from a user's IBS food diary over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements).
 
-"Suspect" means the ingredient was eaten 6-36 hours before a bowel movement. "Safe" means it was eaten without a bowel movement following in that window.
+"Suspect" means the ingredient was eaten 6-36 hours before a bowel movement. "Safe" means it was eaten without a bowel movement following in that window. "Severe-suspect" means it was eaten before a bowel movement with Bristol type 5-7 (loose/diarrhea) specifically.
 
 Bristol Stool Scale: Types 1-2 = constipation, 3-4 = normal/ideal, 5-7 = loose/diarrhea. Per-ingredient Bristol breakdowns show which stool types followed eating that ingredient.
-${bristolSummary}${symptomSummary}
+${bristolSummary}${symptomSummary}${frequencySummary}${trendSummary}
 
 INGREDIENT STATS:
 ${ingredientLines || '(no ingredients with enough data)'}
@@ -409,6 +437,8 @@ Return ONLY valid JSON:
     {"name": "ingredient name", "reason": "brief explanation"}
   ],
   "timingInsights": "Any observations about timing patterns, or null if insufficient data",
+  "dietaryTrend": "improvement | worsening | stable | insufficient data",
+  "trendNotes": "Description of how things changed over the tracking period, or null if no temporal data",
   "nextSteps": ["actionable recommendation 1", "actionable recommendation 2"],
   "notes": "Same as summary, for backward compatibility"
 }`;
@@ -417,7 +447,11 @@ Return ONLY valid JSON:
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      system: 'You are a cautious IBS food diary analyst. You will receive pre-computed statistics about a user\'s meals and bowel movements. Your job is to interpret these numbers — do NOT invent correlations. If the data is insufficient, say so. Only flag ingredients where the pattern is notable (suspectRate above 0.5 with at least 3 occurrences). Use plain language a non-medical person can understand.',
+      system: `You are a cautious IBS food diary analyst. You will receive pre-computed statistics about a user's meals and bowel movements. Your job is to interpret these numbers — do NOT invent correlations. If the data is insufficient, say so. Only flag ingredients where the pattern is notable (suspectRate above 0.5 with at least 3 occurrences). Use plain language a non-medical person can understand.
+
+IMPORTANT — Temporal trends: If TEMPORAL TREND data is provided, compare the first half and second half of the tracking period. Look for changes in poop frequency, Bristol averages, and symptom counts. If the second half shows improvement (lower Bristol average, fewer symptoms, lower frequency), note this positively and do NOT recommend eliminating foods the user has already stopped eating. If things got worse, note the worsening trend.
+
+IMPORTANT — High-frequency users: If the overall poop frequency is above 2/day, the regular "suspectRate" may be inflated (everything lands in a window). In this case, rely on "severe-suspect" rates (Bristol 5-7 only) to identify true flare triggers. Ingredients with high suspectRate but low severe-suspect rate are likely part of the baseline, not real triggers.`,
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -440,7 +474,9 @@ async function analyzeCorrelationsWithOpenAI(stats) {
   const ingredientLines = Object.entries(stats.ingredients)
     .sort((a, b) => b[1].suspectRate - a[1].suspectRate)
     .map(([name, d]) => {
-      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%), safe ${d.safe}x`;
+      let line = `- ${name}: eaten ${d.total}x, suspect ${d.suspect}x (${Math.round(d.suspectRate * 100)}%)`;
+      if (d.severeSuspect > 0) line += `, severe-suspect ${d.severeSuspect}x (${Math.round(d.severeSuspectRate * 100)}%)`;
+      line += `, safe ${d.safe}x`;
       if (d.avgLagHours) line += `, median lag ${d.avgLagHours}h`;
       if (d.bristolBreakdown) {
         const types = Object.entries(d.bristolBreakdown).map(([t, c]) => `Type ${t}×${c}`).join(', ');
@@ -454,12 +490,12 @@ async function analyzeCorrelationsWithOpenAI(stats) {
     })
     .join('\n');
 
-  const prompt = `Pre-computed IBS food diary stats over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements). "Suspect" = eaten 6-36h before a bowel movement. Bristol Scale: 1-2=constipation, 3-4=normal, 5-7=loose/diarrhea.
+  const prompt = `Pre-computed IBS food diary stats over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements). "Suspect" = eaten 6-36h before a bowel movement. "Severe-suspect" = eaten before a Bristol 5-7 bowel movement. Bristol Scale: 1-2=constipation, 3-4=normal, 5-7=loose/diarrhea.
 
 INGREDIENT STATS:
 ${ingredientLines || '(no data)'}
 
-Return ONLY valid JSON with: summary, triggers (name/confidence/reason), safeFoods (name/reason), timingInsights, nextSteps, notes.`;
+Return ONLY valid JSON with: summary, triggers (name/confidence/reason), safeFoods (name/reason), timingInsights, dietaryTrend, trendNotes, nextSteps, notes.`;
 
   try {
     const response = await openai.chat.completions.create({
