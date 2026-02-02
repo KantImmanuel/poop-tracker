@@ -464,7 +464,7 @@ ${ingredientLines}
 
 Co-occurrence data shows which ingredients frequently appear together in the same meals, with counts of shared total and suspect meals. Use this to identify confounded ingredients that cannot be distinguished from each other.
 
-Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not supported by the data. If data is insufficient, say so. Use Bristol types to distinguish between constipation-triggering and diarrhea-triggering ingredients when the data supports it.
+Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not supported by the data. Use Bristol types to distinguish between constipation-triggering and diarrhea-triggering ingredients when the data supports it.
 
 Return ONLY valid JSON:
 {
@@ -486,7 +486,9 @@ Return ONLY valid JSON:
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
-      system: `You are a cautious IBS food diary analyst. You will receive pre-computed statistics about a user's meals and bowel movements. Your job is to interpret these numbers — do NOT invent correlations. If the data is insufficient, say so. Only flag ingredients where the pattern is notable (suspectRate above 0.5 with at least 3 occurrences). Use plain language a non-medical person can understand.
+      system: `You are a cautious IBS food diary analyst. You will receive pre-computed statistics about a user's meals and bowel movements. Your job is to interpret these numbers — do NOT invent correlations. Only flag ingredients where the pattern is notable (suspectRate above 0.5 with at least 3 occurrences). Use plain language a non-medical person can understand.
+
+IMPORTANT — Small datasets: When there are fewer than 7 meals or 5 bowel movements, do NOT say "insufficient data" or refuse to analyze. Instead, provide: (1) observations about what the user has been eating, (2) any early patterns worth watching even if not yet statistically meaningful, (3) general IBS-relevant tips based on the foods they eat (e.g., if they eat dairy, mention it's a common trigger), (4) encouragement to keep logging. Frame findings as "early observations" rather than conclusions. Always give the user something useful back.
 
 IMPORTANT — Temporal trends: If TEMPORAL TREND data is provided, compare the first half and second half of the tracking period. Look for changes in poop frequency, Bristol averages, and symptom counts. If the second half shows improvement (lower Bristol average, fewer symptoms, lower frequency), note this positively and do NOT recommend eliminating foods the user has already stopped eating. If things got worse, note the worsening trend.
 

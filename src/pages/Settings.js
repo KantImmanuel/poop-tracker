@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { isPushSupported, getPermissionState, subscribeToPush, unsubscribeFromPush, isCurrentlySubscribed } from '../services/pushNotifications';
 
 function Settings() {
   const { user, isGuest, logout } = useAuth();
@@ -13,6 +14,15 @@ function Settings() {
   const [pwLoading, setPwLoading] = useState(false);
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [permissionState, setPermissionState] = useState(getPermissionState());
+
+  useEffect(() => {
+    if (isPushSupported() && !isGuest) {
+      isCurrentlySubscribed().then(setNotifEnabled);
+    }
+  }, [isGuest]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -40,6 +50,22 @@ function Settings() {
       setPwError(error.response?.data?.message || 'Failed to change password');
     } finally {
       setPwLoading(false);
+    }
+  };
+
+  const handleToggleNotifications = async () => {
+    setNotifLoading(true);
+    try {
+      if (notifEnabled) {
+        await unsubscribeFromPush();
+        setNotifEnabled(false);
+      } else {
+        const success = await subscribeToPush();
+        setNotifEnabled(success);
+        setPermissionState(getPermissionState());
+      }
+    } finally {
+      setNotifLoading(false);
     }
   };
 
@@ -103,6 +129,45 @@ function Settings() {
               <h3 style={{ margin: '0 0 8px 0' }}>Account</h3>
               <p style={{ margin: 0, color: '#7A5A44', fontSize: '15px' }}>{user?.email}</p>
             </div>
+
+            {/* Reminders */}
+            {isPushSupported() && (
+              <div className="card">
+                <h3 style={{ margin: '0 0 8px 0' }}>Reminders</h3>
+                <p style={{ margin: '0 0 16px', color: '#7A5A44', fontSize: '14px', lineHeight: '1.5' }}>
+                  Get reminders to log meals and check in on your gut.
+                </p>
+                {permissionState === 'denied' ? (
+                  <p style={{ margin: 0, color: '#B8564A', fontSize: '14px' }}>
+                    Notifications are blocked. Please enable them in your browser settings.
+                  </p>
+                ) : (
+                  <button
+                    onClick={handleToggleNotifications}
+                    disabled={notifLoading}
+                    style={{
+                      width: '100%',
+                      background: notifEnabled ? 'none' : '#7E8B47',
+                      color: notifEnabled ? '#B8564A' : '#fff',
+                      border: notifEnabled ? '2px solid #E8D9C8' : 'none',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      opacity: notifLoading ? 0.6 : 1,
+                    }}
+                  >
+                    {notifLoading
+                      ? '...'
+                      : notifEnabled
+                        ? 'Turn Off Reminders'
+                        : 'Turn On Reminders'}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Change Password */}
             {!showChangePassword ? (

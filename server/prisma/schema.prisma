@@ -15,7 +15,8 @@ model User {
   meals          Meal[]
   poopLogs       PoopLog[]
   insightReport  InsightReport?
-  refreshTokens  RefreshToken[]
+  refreshTokens     RefreshToken[]
+  pushSubscriptions PushSubscription[]
 }
 
 model RefreshToken {
@@ -69,4 +70,16 @@ model PoopLog {
   symptoms  String?  // JSON array: ["bloating", "cramps", "gas", "nausea", "urgency", "fatigue", "blood", "mucus"]
 
   @@index([userId, timestamp])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
