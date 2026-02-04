@@ -445,4 +445,204 @@ describe('computeCorrelationStats', () => {
       expect(garlicEntry.sharedMeals).toBe(2); // not 3 (deduped per meal)
     });
   });
+
+  describe('frequency spike detection', () => {
+    // NOTE: BASE = 2025-01-15T08:00:00Z. To keep poops on the same UTC day,
+    // place them between +0h and +15h from day start (08:00-23:00 UTC).
+
+    test('4 poops in one day = spike day, meals in window are freq-suspect', () => {
+      // Meal at hour 0 (Jan 15 08:00 UTC)
+      // 4 poops at hours 8-11 (Jan 15 16:00-19:00 UTC) — all on Jan 15
+      // 1 poop on a different day for baseline contrast
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['milk', 'cheese']),
+        meal(hoursFrom(BASE, 72), ['milk', 'cheese'])   // 2nd occurrence
+      ];
+      const poops = [
+        poop(hoursFrom(BASE, 8), '3'),    // Jan 15 16:00 UTC
+        poop(hoursFrom(BASE, 9), '4'),    // Jan 15 17:00 UTC
+        poop(hoursFrom(BASE, 10), '3'),   // Jan 15 18:00 UTC
+        poop(hoursFrom(BASE, 11), '4'),   // Jan 15 19:00 UTC
+        poop(hoursFrom(BASE, 80), '3'),   // Jan 18 16:00 UTC (normal day)
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+
+      // Quality suspect should be 0 since all poops are Bristol 3-4, no symptoms
+      expect(stats.ingredients.milk.suspect).toBe(0);
+      // Frequency: Jan 15 has 4 poops, baseline median([4, 1]) = 2.5 → 4 > 3 and 4 > 2.5 → spike
+      expect(stats.frequencyAnalysis.totalSpikeDays).toBe(1);
+      expect(stats.ingredients.milk.frequencySuspect).toBeGreaterThan(0);
+    });
+
+    test('spike day with 5 poops flags meals in 6-36h window as freq-suspect', () => {
+      // Meal at hour 0 (Jan 15 08:00 UTC)
+      // 5 poops at hours 8-12 (Jan 15 16:00-20:00 UTC) — all on Jan 15
+      // Meal at hour 72 + 1 poop at hour 80 (Jan 18, normal day)
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['garlic', 'onion']),
+        meal(hoursFrom(BASE, 72), ['garlic', 'onion'])
+      ];
+      const poops = [
+        poop(hoursFrom(BASE, 8), '3'),
+        poop(hoursFrom(BASE, 9), '3'),
+        poop(hoursFrom(BASE, 10), '4'),
+        poop(hoursFrom(BASE, 11), '3'),
+        poop(hoursFrom(BASE, 12), '4'),
+        poop(hoursFrom(BASE, 80), '3'),   // Jan 18 (normal day)
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+
+      // Quality: all Bristol 3-4, no symptoms → no quality suspects
+      expect(stats.ingredients.garlic.suspect).toBe(0);
+
+      // Frequency: Jan 15 has 5 poops, median([5, 1]) = 3, 5 > 3 → spike
+      expect(stats.frequencyAnalysis.totalSpikeDays).toBe(1);
+
+      // garlic/onion should be freq-suspect because meal was in window of spike day poops
+      expect(stats.ingredients.garlic.frequencySuspect).toBeGreaterThan(0);
+      expect(stats.ingredients.onion.frequencySuspect).toBeGreaterThan(0);
+    });
+
+    test('3 poops/day is NOT a spike (within healthy range)', () => {
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['rice']),
+        meal(hoursFrom(BASE, 48), ['rice'])
+      ];
+      // 3 poops on Jan 15 (within healthy range of 1-3)
+      const poops = [
+        poop(hoursFrom(BASE, 8), '3'),
+        poop(hoursFrom(BASE, 10), '3'),
+        poop(hoursFrom(BASE, 12), '3'),
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+      expect(stats.ingredients.rice.frequencySuspect).toBe(0);
+      expect(stats.frequencyAnalysis.totalSpikeDays).toBe(0);
+    });
+
+    test('high baseline user (5/day) only flags days above their baseline', () => {
+      // User poops ~5 times every day. Day with 7 = spike. Day with 5 = normal for them.
+      const meals = [];
+      const poops = [];
+
+      // Days 0-3: 5 poops each day, spaced within UTC daytime (hours 0-8 offset per day)
+      for (let day = 0; day < 4; day++) {
+        meals.push(meal(hoursFrom(BASE, day * 24), ['rice', 'chicken']));
+        for (let p = 0; p < 5; p++) {
+          poops.push(poop(hoursFrom(BASE, day * 24 + 2 + p * 2), '3'));
+        }
+      }
+      // Day 4: trigger meal + 7 poops spaced 1h apart (stay within same UTC day)
+      meals.push(meal(hoursFrom(BASE, 96), ['dairy', 'cream']));
+      meals.push(meal(hoursFrom(BASE, 0), ['dairy', 'cream'])); // 2nd occurrence
+      for (let p = 0; p < 7; p++) {
+        poops.push(poop(hoursFrom(BASE, 96 + 2 + p), '3'));
+      }
+
+      const stats = computeCorrelationStats(meals, poops);
+
+      expect(stats.frequencyAnalysis.highBaseline).toBe(true);
+      expect(stats.frequencyAnalysis.baselineFrequency).toBeGreaterThan(3);
+      // Day 4 with 7 poops should be a spike above baseline of 5
+      expect(stats.frequencyAnalysis.totalSpikeDays).toBeGreaterThanOrEqual(1);
+    });
+
+    test('frequencyAnalysis contains correct structure', () => {
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['rice']),
+        meal(hoursFrom(BASE, 48), ['rice'])
+      ];
+      const poops = [
+        poop(hoursFrom(BASE, 8), '4'),
+        poop(hoursFrom(BASE, 56), '3'),
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+      expect(stats.frequencyAnalysis).toEqual(expect.objectContaining({
+        baselineFrequency: expect.any(Number),
+        highBaseline: expect.any(Boolean),
+        spikeDays: expect.any(Array),
+        totalSpikeDays: expect.any(Number),
+        daysTracked: expect.any(Number),
+        maxDaily: expect.any(Number),
+        minDaily: expect.any(Number),
+      }));
+    });
+
+    test('frequencyAnalysis is null with no poops', () => {
+      const meals = [meal(hoursFrom(BASE, 0), ['rice'])];
+      const stats = computeCorrelationStats(meals, []);
+      expect(stats.frequencyAnalysis).toBeNull();
+    });
+
+    test('frequency suspect does not double-count meals within same spike day', () => {
+      // Meal at hour 0, 5 poops at hours 8-12 (all Jan 15 UTC)
+      // Second meal + 1 poop on different day for baseline contrast
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['garlic']),
+        meal(hoursFrom(BASE, 48), ['garlic'])
+      ];
+      const poops = [
+        poop(hoursFrom(BASE, 8), '3'),
+        poop(hoursFrom(BASE, 9), '3'),
+        poop(hoursFrom(BASE, 10), '3'),
+        poop(hoursFrom(BASE, 11), '3'),
+        poop(hoursFrom(BASE, 12), '3'),
+        poop(hoursFrom(BASE, 56), '3'),   // Jan 17 (normal day)
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+      // Should be 1 (one spike day), not 5 (one per poop)
+      expect(stats.ingredients.garlic.frequencySuspect).toBe(1);
+    });
+
+    test('ingredient with both quality and frequency suspect', () => {
+      // Meal at hour 0, 5 poops at hours 8-12 (some Bristol 5+) — all Jan 15 UTC
+      // Second meal + 1 poop on different day for baseline contrast
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['milk']),
+        meal(hoursFrom(BASE, 72), ['milk'])
+      ];
+      const poops = [
+        poop(hoursFrom(BASE, 8), '6', ['cramps']),
+        poop(hoursFrom(BASE, 9), '5'),
+        poop(hoursFrom(BASE, 10), '3'),
+        poop(hoursFrom(BASE, 11), '4'),
+        poop(hoursFrom(BASE, 12), '3'),
+        poop(hoursFrom(BASE, 80), '3'),   // Jan 18 (normal day)
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+      // Quality suspect: poops at 8h (Bristol 6) and 9h (Bristol 5) are abnormal
+      expect(stats.ingredients.milk.suspect).toBeGreaterThan(0);
+      expect(stats.ingredients.milk.severeSuspect).toBeGreaterThan(0);
+      // Frequency suspect: Jan 15 has 5 poops → spike
+      expect(stats.ingredients.milk.frequencySuspect).toBeGreaterThan(0);
+    });
+
+    test('per-ingredient frequencySuspectRate is computed correctly', () => {
+      // Meal 0: before spike day. Meal 1: before normal day. Meal 2: no poops after.
+      const meals = [
+        meal(hoursFrom(BASE, 0), ['garlic']),
+        meal(hoursFrom(BASE, 48), ['garlic']),
+        meal(hoursFrom(BASE, 96), ['garlic'])
+      ];
+      // 5 poops on Jan 15 (hours 8-12), 1 on Jan 17
+      const poops = [
+        poop(hoursFrom(BASE, 8), '3'),
+        poop(hoursFrom(BASE, 9), '3'),
+        poop(hoursFrom(BASE, 10), '3'),
+        poop(hoursFrom(BASE, 11), '3'),
+        poop(hoursFrom(BASE, 12), '3'),
+        poop(hoursFrom(BASE, 56), '3'),   // Jan 17 (normal day)
+      ];
+
+      const stats = computeCorrelationStats(meals, poops);
+      // garlic eaten 3 times, freq-suspect 1 time → rate 0.33
+      expect(stats.ingredients.garlic.frequencySuspect).toBe(1);
+      expect(stats.ingredients.garlic.frequencySuspectRate).toBeCloseTo(0.33, 1);
+    });
+  });
 });

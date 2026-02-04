@@ -14,6 +14,7 @@ const { normalizeIngredient } = require('./ingredientNormalizer');
 const WINDOW_MIN_H = 6;
 const WINDOW_MAX_H = 36;
 const MS_PER_H = 60 * 60 * 1000;
+const HEALTHY_MAX_DAILY = 3; // 1-3 poops/day is healthy; above this indicates an issue
 
 function computeCorrelationStats(meals, poops) {
   const ingredientMap = {}; // name → { suspect, safe, severeSuspect, lowConfidence, lags[], bristolTypes[], symptoms[], coOccurrences{} }
@@ -28,7 +29,7 @@ function computeCorrelationStats(meals, poops) {
   });
 
   // Compute total co-occurrence: which ingredients appear together in the same meal
-  const initEntry = () => ({ suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [], coOccurrences: {} });
+  const initEntry = () => ({ suspect: 0, safe: 0, severeSuspect: 0, frequencySuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [], coOccurrences: {} });
   for (const mt of mealTimes) {
     const ings = mt.ingredients;
     for (let a = 0; a < ings.length; a++) {
@@ -76,9 +77,7 @@ function computeCorrelationStats(meals, poops) {
         const lagH = (poop.ts - mt.ts) / MS_PER_H;
 
         for (const ing of mt.ingredients) {
-          if (!ingredientMap[ing]) {
-            ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [], coOccurrences: {} };
-          }
+          if (!ingredientMap[ing]) ingredientMap[ing] = initEntry();
           ingredientMap[ing].suspect++;
           if (isSevere) ingredientMap[ing].severeSuspect++;
           if (mt.confidence < 0.7) ingredientMap[ing].lowConfidence++;
@@ -109,11 +108,55 @@ function computeCorrelationStats(meals, poops) {
   for (let i = 0; i < mealTimes.length; i++) {
     if (!suspectMealIdx.has(i)) {
       for (const ing of mealTimes[i].ingredients) {
-        if (!ingredientMap[ing]) {
-          ingredientMap[ing] = { suspect: 0, safe: 0, severeSuspect: 0, lowConfidence: 0, lags: [], bristolTypes: [], symptoms: [] };
-        }
+        if (!ingredientMap[ing]) ingredientMap[ing] = initEntry();
         ingredientMap[ing].safe++;
         if (mealTimes[i].confidence < 0.7) ingredientMap[ing].lowConfidence++;
+      }
+    }
+  }
+
+  // === FREQUENCY SPIKE DETECTION ===
+  // Group poops by calendar day and detect days with abnormally high counts.
+  // A spike day = count exceeds healthy range (>3) AND exceeds personal baseline.
+  const dailyPoopCounts = {};
+  for (const p of poopData) {
+    const dayKey = new Date(p.ts).toISOString().slice(0, 10);
+    if (!dailyPoopCounts[dayKey]) dailyPoopCounts[dayKey] = { count: 0, poops: [] };
+    dailyPoopCounts[dayKey].count++;
+    dailyPoopCounts[dayKey].poops.push(p);
+  }
+
+  const dailyCounts = Object.values(dailyPoopCounts).map(d => d.count);
+  const baselineFrequency = dailyCounts.length > 0 ? median(dailyCounts) : 0;
+  const highBaseline = baselineFrequency > HEALTHY_MAX_DAILY;
+
+  const spikeDays = [];
+  const frequencySuspectMealIdx = new Set();
+
+  for (const [dayKey, dayData] of Object.entries(dailyPoopCounts)) {
+    const isSpike = dayData.count > HEALTHY_MAX_DAILY && dayData.count > baselineFrequency;
+    if (!isSpike) continue;
+
+    spikeDays.push({ date: dayKey, count: dayData.count });
+
+    // Find unique meals in 6-36h window of any poop on this spike day
+    const spikeMealSet = new Set();
+    for (const p of dayData.poops) {
+      const windowStart = p.ts - WINDOW_MAX_H * MS_PER_H;
+      const windowEnd = p.ts - WINDOW_MIN_H * MS_PER_H;
+      for (let i = 0; i < mealTimes.length; i++) {
+        if (mealTimes[i].ts >= windowStart && mealTimes[i].ts <= windowEnd) {
+          spikeMealSet.add(i);
+        }
+      }
+    }
+
+    // Increment frequencySuspect once per spike day per meal
+    for (const idx of spikeMealSet) {
+      frequencySuspectMealIdx.add(idx);
+      for (const ing of mealTimes[idx].ingredients) {
+        if (!ingredientMap[ing]) ingredientMap[ing] = initEntry();
+        ingredientMap[ing].frequencySuspect++;
       }
     }
   }
@@ -133,6 +176,8 @@ function computeCorrelationStats(meals, poops) {
       suspectRate: +(data.suspect / total).toFixed(2),
       severeSuspect: data.severeSuspect,
       severeSuspectRate: +(data.severeSuspect / total).toFixed(2),
+      frequencySuspect: data.frequencySuspect,
+      frequencySuspectRate: data.frequencySuspect > 0 ? +(data.frequencySuspect / total).toFixed(2) : 0,
       avgLagHours: data.lags.length > 0
         ? +median(data.lags).toFixed(1)
         : null,
@@ -260,7 +305,16 @@ function computeCorrelationStats(meals, poops) {
     poopsPerDay: spanDays > 0 ? +(poops.length / spanDays).toFixed(1) : null,
     bristolDistribution: Object.keys(bristolDist).length > 0 ? bristolDist : null,
     symptomDistribution: Object.keys(symptomDist).length > 0 ? symptomDist : null,
-    temporalTrend
+    temporalTrend,
+    frequencyAnalysis: dailyCounts.length > 0 ? {
+      baselineFrequency,
+      highBaseline,
+      spikeDays: spikeDays.sort((a, b) => a.date.localeCompare(b.date)),
+      totalSpikeDays: spikeDays.length,
+      daysTracked: dailyCounts.length,
+      maxDaily: Math.max(...dailyCounts),
+      minDaily: Math.min(...dailyCounts)
+    } : null
   };
 }
 

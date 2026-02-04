@@ -474,6 +474,9 @@ function formatIngredientStats(stats) {
           const syms = d.topSymptoms.map(s => `${s.name}×${s.count}`).join(', ');
           line += ` [symptoms: ${syms}]`;
         }
+        if (d.frequencySuspect > 0) {
+          line += `, freq-suspect ${d.frequencySuspect}x (${Math.round(d.frequencySuspectRate * 100)}%)`;
+        }
         if (d.lowConfidenceCount > 0) {
           line += `, uncertain-photo ${d.lowConfidenceCount}x`;
         }
@@ -532,6 +535,21 @@ async function analyzeCorrelationsWithClaude(stats) {
     frequencySummary = `\nOVERALL POOP FREQUENCY: ${stats.poopsPerDay}/day`;
   }
 
+  // Frequency spike analysis
+  let frequencySection = '';
+  if (stats.frequencyAnalysis) {
+    const fa = stats.frequencyAnalysis;
+    frequencySection = `\nFREQUENCY ANALYSIS: baseline ${fa.baselineFrequency}/day over ${fa.daysTracked} days tracked, range ${fa.minDaily}-${fa.maxDaily}/day`;
+    if (fa.highBaseline) {
+      frequencySection += `\n  HIGH BASELINE — user averages >${fa.baselineFrequency} poops/day (healthy is 1-3). Chronic high frequency itself indicates a dietary issue.`;
+    }
+    if (fa.spikeDays.length > 0) {
+      frequencySection += `\n  Spike days (>3/day and above baseline): ${fa.spikeDays.map(s => `${s.date}: ${s.count}`).join(', ')}`;
+    } else if (!fa.highBaseline) {
+      frequencySection += '\n  No frequency spikes detected (all days within healthy range)';
+    }
+  }
+
   // Temporal trend section
   let trendSummary = '';
   if (stats.temporalTrend) {
@@ -554,10 +572,10 @@ async function analyzeCorrelationsWithClaude(stats) {
 
   const prompt = `Here are pre-computed statistics from a user's IBS food diary over ${stats.spanDays} days (${stats.totalMeals} meals, ${stats.totalPoops} bowel movements).
 
-"Suspect" means the ingredient was eaten 6-36 hours before a bowel movement. "Safe" means it was eaten without a bowel movement following in that window. "Severe-suspect" means it was eaten before a bowel movement with Bristol type 5-7 (loose/diarrhea) specifically.
+"Suspect" means the ingredient was eaten 6-36 hours before an abnormal bowel movement (Bristol 5+ or with symptoms). "Safe" means it was eaten without an abnormal bowel movement following in that window. "Severe-suspect" means it was eaten before a bowel movement with Bristol type 5-7 (loose/diarrhea) specifically. "Freq-suspect" means the ingredient was eaten 6-36 hours before a day with abnormally high poop frequency (>3/day and above the user's personal baseline). Frequency tracking is CRITICAL — reducing poop frequency is the user's primary goal.
 
 Bristol Stool Scale: Types 1-2 = constipation, 3-4 = normal/ideal, 5-7 = loose/diarrhea. Per-ingredient Bristol breakdowns show which stool types followed eating that ingredient.
-${bristolSummary}${symptomSummary}${frequencySummary}${trendSummary}
+${bristolSummary}${symptomSummary}${frequencySummary}${frequencySection}${trendSummary}
 
 INGREDIENT STATS BY CATEGORY:
 ${ingredientLines}
@@ -568,13 +586,14 @@ Based ONLY on these numbers, provide your analysis. Do NOT invent patterns not s
 
 Return ONLY valid JSON:
 {
-  "summary": "1-2 sentence plain English overview of findings",
+  "summary": "1-2 sentence plain English overview of findings including frequency observations",
   "triggers": [
-    {"name": "ingredient name", "confidence": 0.0-1.0, "reason": "brief explanation referencing the numbers"}
+    {"name": "ingredient name", "confidence": 0.0-1.0, "reason": "brief explanation referencing the numbers — mention if this is a quality trigger, frequency trigger, or both"}
   ],
   "safeFoods": [
     {"name": "ingredient name", "reason": "brief explanation"}
   ],
+  "frequencyInsights": "Observations about poop frequency patterns — which ingredients appear linked to high-frequency days, whether baseline is concerning, etc. Null if no frequency data.",
   "timingInsights": "Any observations about timing patterns, or null if insufficient data",
   "dietaryTrend": "improvement | worsening | stable | insufficient data",
   "trendNotes": "Description of how things changed over the tracking period, or null if no temporal data",
@@ -592,7 +611,9 @@ IMPORTANT — Small datasets: When there are fewer than 7 meals or 5 bowel movem
 
 IMPORTANT — Temporal trends: If TEMPORAL TREND data is provided, compare the first half and second half of the tracking period. Look for changes in poop frequency, Bristol averages, and symptom counts. If the second half shows improvement (lower Bristol average, fewer symptoms, lower frequency), note this positively and do NOT recommend eliminating foods the user has already stopped eating. If things got worse, note the worsening trend.
 
-IMPORTANT — High-frequency users: If the overall poop frequency is above 2/day, the regular "suspectRate" may be inflated (everything lands in a window). In this case, rely on "severe-suspect" rates (Bristol 5-7 only) to identify true flare triggers. Ingredients with high suspectRate but low severe-suspect rate are likely part of the baseline, not real triggers.
+IMPORTANT — Frequency analysis: The data includes frequency spike detection. "Freq-suspect" ingredients were eaten before days with abnormally high poop frequency (>3/day and above the user's baseline). This is SEPARATE from quality-based suspect tracking — an ingredient can cause frequent bathroom trips even if individual poops are Bristol 3-4 with no symptoms. REDUCING FREQUENCY IS THE USER'S PRIMARY GOAL. Pay special attention to ingredients with high freq-suspect rates. If the user has a "HIGH BASELINE" (consistently >3 poops/day), identify ingredients consumed most consistently across all days as potential drivers of chronic high frequency, and recommend systematic elimination experiments.
+
+IMPORTANT — High-frequency users: If the overall poop frequency is above 2/day, the regular "suspectRate" may be inflated (everything lands in a window). In this case, rely on "severe-suspect" rates (Bristol 5-7 only) and "freq-suspect" rates to identify true triggers. Ingredients with high suspectRate but low severe-suspect AND low freq-suspect rates are likely part of the baseline, not real triggers.
 
 IMPORTANT — Photo confidence: Ingredients marked with "uncertain-photo" counts were identified from blurry or concealed food photos. Weight these lower in your analysis — mention the uncertainty if flagging them as triggers.
 
