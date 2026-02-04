@@ -18,6 +18,7 @@ import Contact from './pages/Contact';
 import ProtectedRoute from './components/ProtectedRoute';
 import { initDB } from './services/offlineStorage';
 import { setupOnlineListener } from './services/syncService';
+import { Analytics } from '@vercel/analytics/react';
 import './App.css';
 
 function HomeOrLanding() {
@@ -103,6 +104,7 @@ function App() {
           />
         </Routes>
       </BrowserRouter>
+      <Analytics />
     </AuthProvider>
   );
 }
