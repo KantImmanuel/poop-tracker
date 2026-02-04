@@ -13,6 +13,7 @@ const insightsRoutes = require('./routes/insights');
 const historyRoutes = require('./routes/history');
 const migrateRoutes = require('./routes/migrate');
 const notificationRoutes = require('./routes/notifications');
+const eventsRoutes = require('./routes/events');
 const { startScheduler } = require('./services/notificationScheduler');
 
 const app = express();
@@ -60,6 +61,7 @@ app.use('/api/insights', insightsRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/migrate', migrateRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/events', eventsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

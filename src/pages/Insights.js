@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { getGuestStats, getGuestMeals, getGuestPoops } from '../services/guestStorage';
 import { isReadyForInsights } from '../utils/insightReadiness';
+import { trackEvent } from '../services/analytics';
 
 function Insights() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ function Insights() {
 
   useEffect(() => {
     fetchInsights();
+    trackEvent('insights_viewed');
   }, [fetchInsights]);
 
   // Derived state

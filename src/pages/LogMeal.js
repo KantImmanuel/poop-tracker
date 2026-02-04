@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api, { offlinePost } from '../services/api';
 import { saveGuestMeal } from '../services/guestStorage';
+import { trackEvent } from '../services/analytics';
 
 function getDefaultMealTime() {
   const hour = new Date().getHours();
@@ -109,6 +110,7 @@ function LogMeal() {
           await saveGuestMeal(foods);
         }
         setResult(aiResult);
+        trackEvent('meal_logged');
       } else {
         const response = await offlinePost('/meals', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -120,6 +122,7 @@ function LogMeal() {
             foods: [{ name: 'Meal saved offline', category: 'Pending sync' }],
             notes: 'This meal will be analyzed when you\'re back online'
           });
+          trackEvent('meal_logged');
           return;
         }
 
@@ -138,6 +141,7 @@ function LogMeal() {
         } else {
           setResult(response.data);
         }
+        trackEvent('meal_logged');
       }
     } catch (error) {
       console.error('Failed to upload meal:', error);
@@ -163,6 +167,7 @@ function LogMeal() {
         const foods = [{ name: description.trim(), ingredients: [] }];
         await saveGuestMeal(foods);
         setResult({ foods });
+        trackEvent('meal_logged');
       } else {
         const response = await offlinePost('/meals/manual', {
           description: description.trim(),
@@ -179,6 +184,7 @@ function LogMeal() {
         } else {
           setResult(response.data);
         }
+        trackEvent('meal_logged');
       }
     } catch (error) {
       console.error('Failed to log meal:', error);

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import { getAllGuestData, clearGuestData } from '../services/guestStorage';
+import { trackEvent } from '../services/analytics';
 
 const AuthContext = createContext(null);
 
@@ -26,6 +27,7 @@ export function AuthProvider({ children }) {
   const enterGuestMode = () => {
     localStorage.setItem('guestMode', 'true');
     setIsGuest(true);
+    trackEvent('guest_entered');
   };
 
   const migrateGuestData = async () => {
@@ -70,6 +72,7 @@ export function AuthProvider({ children }) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     setUser(user);
     setIsGuest(false);
+    trackEvent('account_created');
 
     if (wasGuest) {
       await migrateGuestData();

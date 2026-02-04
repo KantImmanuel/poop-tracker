@@ -84,3 +84,13 @@ model PushSubscription {
 
   @@index([userId])
 }
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  action    String   // "guest_entered", "meal_logged", "poop_logged", "insights_viewed", "account_created"
+  isGuest   Boolean  @default(false)
+  sessionId String?  // anonymous session ID (no PII)
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+}

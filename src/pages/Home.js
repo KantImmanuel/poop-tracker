@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { offlinePost } from '../services/api';
 import { saveGuestPoop } from '../services/guestStorage';
+import { trackEvent } from '../services/analytics';
 import cameraIcon from '../assets/camera-icon.png';
 import poopIcon from '../assets/poop-icon.png';
 
@@ -114,6 +115,7 @@ function Home() {
       setShowSuccess(true);
       setSelectedSeverity(null);
       setSelectedSymptoms([]);
+      trackEvent('poop_logged');
       setTimeout(() => setShowSuccess(false), 2000);
     } catch (error) {
       console.error('Failed to log poop:', error);
