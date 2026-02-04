@@ -215,6 +215,7 @@ body {
 /* ── Form inputs ── */
 .input {
   width: 100%;
+  max-width: 100%;
   padding: 16px;
   border: 2px solid #E8D9C8;
   border-radius: 16px;
