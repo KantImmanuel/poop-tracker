@@ -52,20 +52,28 @@ function computeCorrelationStats(meals, poops) {
 
   const poopTimes = poopData.map(p => p.ts);
 
-  // Track which meals are "suspect" (followed by poop in window)
+  // Track which meals are "suspect" (followed by an abnormal poop in window)
+  // A poop is "abnormal" if Bristol >= 5 OR it has symptoms.
+  // Normal poops (Bristol 1-4, no symptoms) are regular bowel movements
+  // and should NOT make nearby meals suspect.
   const suspectMealIdx = new Set();
 
   for (const poop of poopData) {
+    const bristolNum = poop.bristol ? parseInt(poop.bristol) : null;
+    const isAbnormal = (bristolNum !== null && bristolNum >= 5) || poop.symptoms.length > 0;
+
+    // Skip normal poops — they don't implicate any meal
+    if (!isAbnormal) continue;
+
     const windowStart = poop.ts - WINDOW_MAX_H * MS_PER_H;
     const windowEnd = poop.ts - WINDOW_MIN_H * MS_PER_H;
+    const isSevere = bristolNum !== null && bristolNum >= 5;
 
     for (let i = 0; i < mealTimes.length; i++) {
       const mt = mealTimes[i];
       if (mt.ts >= windowStart && mt.ts <= windowEnd) {
         suspectMealIdx.add(i);
         const lagH = (poop.ts - mt.ts) / MS_PER_H;
-
-        const isSevere = poop.bristol && parseInt(poop.bristol) >= 5;
 
         for (const ing of mt.ingredients) {
           if (!ingredientMap[ing]) {

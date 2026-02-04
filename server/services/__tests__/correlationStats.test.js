@@ -68,7 +68,7 @@ describe('computeCorrelationStats', () => {
         meal(hoursFrom(BASE, 0), ['wheat']),
         meal(hoursFrom(BASE, 48), ['wheat'])
       ];
-      const poops = [poop(hoursFrom(BASE, 6))];
+      const poops = [poop(hoursFrom(BASE, 6), '5', ['bloating'])];
 
       const stats = computeCorrelationStats(meals, poops);
       expect(stats.ingredients.wheat.suspect).toBe(1);
@@ -79,7 +79,7 @@ describe('computeCorrelationStats', () => {
         meal(hoursFrom(BASE, 0), ['barley']),
         meal(hoursFrom(BASE, 48), ['barley'])
       ];
-      const poops = [poop(hoursFrom(BASE, 36))];
+      const poops = [poop(hoursFrom(BASE, 36), '6', ['cramps'])];
 
       const stats = computeCorrelationStats(meals, poops);
       expect(stats.ingredients.barley.suspect).toBe(1);
@@ -181,7 +181,7 @@ describe('computeCorrelationStats', () => {
         },
         meal(hoursFrom(BASE, 48), ['wheat'])
       ];
-      const poops = [poop(hoursFrom(BASE, 12))];
+      const poops = [poop(hoursFrom(BASE, 12), '5', ['bloating'])];
 
       const stats = computeCorrelationStats(meals, poops);
       // wheat appears in both foods of meal 1, but should count as 1 suspect
@@ -388,8 +388,8 @@ describe('computeCorrelationStats', () => {
         meal(hoursFrom(BASE, 96), ['garlic', 'cheese'])   // suspect (poop at 108h)
       ];
       const poops = [
-        poop(hoursFrom(BASE, 12)),
-        poop(hoursFrom(BASE, 108))
+        poop(hoursFrom(BASE, 12), '6', ['cramps']),
+        poop(hoursFrom(BASE, 108), '5', ['bloating'])
       ];
 
       const stats = computeCorrelationStats(meals, poops);
