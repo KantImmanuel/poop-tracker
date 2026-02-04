@@ -321,6 +321,106 @@ async function analyzeWithOpenAI(imagePath) {
   }
 }
 
+// Text-based food analysis — user types a description, AI extracts foods + ingredients
+async function analyzeFoodDescription(description) {
+  if (USE_CLAUDE) {
+    return analyzeFoodDescriptionWithClaude(description);
+  } else if (USE_OPENAI) {
+    return analyzeFoodDescriptionWithOpenAI(description);
+  }
+  return mockFoodDescriptionAnalysis(description);
+}
+
+async function analyzeFoodDescriptionWithClaude(description) {
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      messages: [
+        {
+          role: 'user',
+          content: `I'm tracking IBS triggers. I just ate: "${description}"
+
+Break this down into individual food items and identify the likely ingredients in each, focusing on IBS triggers (dairy, gluten, onion, garlic, FODMAPs, high-fat, spicy, caffeine, alcohol, artificial sweeteners).
+
+For each food item:
+1. Give a specific name
+2. List likely ingredients
+3. Note brand/restaurant if mentioned
+4. Rate confidence (0.0-1.0) — high if the description is clear, lower if ambiguous
+
+Return ONLY valid JSON:
+{
+  "foods": [
+    {
+      "name": "Food Name",
+      "category": "Category",
+      "ingredients": ["ingredient1", "ingredient2"],
+      "isConcealed": false,
+      "confirmedIngredients": [],
+      "possibleIngredients": [],
+      "brand": null,
+      "restaurant": null,
+      "portion": "portion description",
+      "confidence": 0.9,
+      "alternatives": []
+    }
+  ],
+  "notes": "Any IBS-relevant observations"
+}`
+        }
+      ]
+    });
+
+    const content = response.content[0].text;
+    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    logger.error({ err: error }, 'Claude food description analysis failed');
+    return mockFoodDescriptionAnalysis(description);
+  }
+}
+
+async function analyzeFoodDescriptionWithOpenAI(description) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: `I'm tracking IBS triggers. I just ate: "${description}". Break this into individual food items with ingredients (especially IBS triggers: dairy, gluten, onion, garlic, FODMAPs). Return ONLY valid JSON with foods array containing name, category, ingredients, isConcealed, confirmedIngredients, possibleIngredients, brand, restaurant, portion, confidence, alternatives. Also include notes field.`
+        }
+      ],
+      max_tokens: 1500
+    });
+
+    const content = response.choices[0].message.content;
+    const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    logger.error({ err: error }, 'OpenAI food description analysis failed');
+    return mockFoodDescriptionAnalysis(description);
+  }
+}
+
+function mockFoodDescriptionAnalysis(description) {
+  // Basic fallback: treat the whole description as one food
+  return {
+    foods: [
+      {
+        name: description,
+        category: 'Unknown',
+        ingredients: description.split(/,|and/).map(s => s.trim()).filter(Boolean),
+        confidence: 0.5,
+        alternatives: []
+      }
+    ],
+    notes: 'Mock analysis — set ANTHROPIC_API_KEY for real AI-powered ingredient extraction'
+  };
+}
+
 // Mock food analysis
 function mockFoodAnalysis() {
   return {
@@ -588,5 +688,6 @@ function mockCorrelationAnalysis(stats) {
 
 module.exports = {
   analyzeFoodImage,
+  analyzeFoodDescription,
   analyzeCorrelations
 };

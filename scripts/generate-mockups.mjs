@@ -207,7 +207,35 @@ async function captureScreenshots(baseUrl) {
   await homePage.screenshot({ path: path.join(OUT, 'home.png'), fullPage: false });
   await homePage.close();
 
-  // ── 2. Food Logged confirmation ─────────────────────────────────────────
+  // ── 2. Log Meal landing (two buttons: photo + manual) ──────────────────
+  console.log('Capturing: log-meal.png');
+  const logMealPage = await context.newPage();
+  await interceptAPIs(logMealPage);
+  await logMealPage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(logMealPage);
+  await logMealPage.goto(`${baseUrl}/log-meal`, { waitUntil: 'networkidle' });
+  await logMealPage.waitForTimeout(500);
+  await logMealPage.screenshot({ path: path.join(OUT, 'log-meal.png'), fullPage: false });
+  await logMealPage.close();
+
+  // ── 3. Log Meal — Manual entry (describe what you ate) ────────────────
+  console.log('Capturing: log-meal-manual.png');
+  const logMealManualPage = await context.newPage();
+  await interceptAPIs(logMealManualPage);
+  await logMealManualPage.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(logMealManualPage);
+  await logMealManualPage.goto(`${baseUrl}/log-meal`, { waitUntil: 'networkidle' });
+  await logMealManualPage.waitForTimeout(300);
+  // Click "Log Manually" button
+  await logMealManualPage.click('button:has-text("Log Manually")');
+  await logMealManualPage.waitForTimeout(300);
+  // Fill in description
+  await logMealManualPage.fill('textarea', 'Chicken tikka masala with garlic naan and a side of basmati rice');
+  await logMealManualPage.waitForTimeout(200);
+  await logMealManualPage.screenshot({ path: path.join(OUT, 'log-meal-manual.png'), fullPage: false });
+  await logMealManualPage.close();
+
+  // ── 4. Food Logged confirmation (manual → AI analysis result) ─────────
   console.log('Capturing: food-logged.png');
   const loggedPage = await context.newPage();
   await interceptAPIs(loggedPage);
@@ -215,20 +243,16 @@ async function captureScreenshots(baseUrl) {
   await injectAuth(loggedPage);
   await loggedPage.goto(`${baseUrl}/log-meal`, { waitUntil: 'networkidle' });
   await loggedPage.waitForTimeout(300);
-  // Inject a fake result state via React internals by manipulating the DOM
-  // Since we can't easily set React state from outside, we'll use the manual meal flow
-  // and intercept the POST to return our mock data
-  await loggedPage.goto(`${baseUrl}/log-meal?manual=true`, { waitUntil: 'networkidle' });
+  // Click "Log Manually", fill in description, submit
+  await loggedPage.click('button:has-text("Log Manually")');
   await loggedPage.waitForTimeout(300);
-  // Fill in a food name and submit
-  await loggedPage.fill('input[placeholder*="Food name"]', 'Margherita Pizza');
-  await loggedPage.fill('input[placeholder*="Ingredients"]', 'wheat flour, tomato sauce, fresh mozzarella, basil, olive oil');
-  await loggedPage.click('button:has-text("Save Meal")');
+  await loggedPage.fill('textarea', 'Margherita pizza and a side salad');
+  await loggedPage.click('button:has-text("Analyze")');
   await loggedPage.waitForTimeout(800);
   await loggedPage.screenshot({ path: path.join(OUT, 'food-logged.png'), fullPage: false });
   await loggedPage.close();
 
-  // ── 3. Food analysis result (photo → AI detected foods + ingredients) ──
+  // ── 5. Food analysis result (photo → AI detected foods + ingredients) ──
   console.log('Capturing: food-analysis.png');
   const analysisPage = await context.newPage();
   await interceptAPIs(analysisPage);
@@ -246,7 +270,7 @@ async function captureScreenshots(baseUrl) {
   await analysisPage.screenshot({ path: path.join(OUT, 'food-analysis.png'), fullPage: true });
   await analysisPage.close();
 
-  // ── 4. Log Poop screen (severity + symptom picker) ─────────────────────
+  // ── 6. Log Poop screen (severity + symptom picker) ─────────────────────
   console.log('Capturing: log-poop.png');
   const poopPage = await context.newPage();
   await interceptAPIs(poopPage);
@@ -267,7 +291,7 @@ async function captureScreenshots(baseUrl) {
   await poopPage.screenshot({ path: path.join(OUT, 'log-poop.png'), fullPage: false });
   await poopPage.close();
 
-  // ── 5. Insights screen (with analysis results) ───────────────────────
+  // ── 7. Insights screen (with analysis results) ───────────────────────
   console.log('Capturing: insights.png');
   const insightsPage = await context.newPage();
   await interceptAPIs(insightsPage);
@@ -278,7 +302,7 @@ async function captureScreenshots(baseUrl) {
   await insightsPage.screenshot({ path: path.join(OUT, 'insights.png'), fullPage: true });
   await insightsPage.close();
 
-  // ── 6. Insights calibration screen (not enough data) ─────────────────
+  // ── 8. Insights calibration screen (not enough data) ─────────────────
   console.log('Capturing: insights-calibration.png');
   const calibrationPage = await context.newPage();
   await interceptAPIs(calibrationPage, { insightsMock: MOCK_INSIGHTS_CALIBRATION });
@@ -289,7 +313,7 @@ async function captureScreenshots(baseUrl) {
   await calibrationPage.screenshot({ path: path.join(OUT, 'insights-calibration.png'), fullPage: false });
   await calibrationPage.close();
 
-  // ── 7. Guest home screen (with signup nudge) ──────────────────────────
+  // ── 9. Guest home screen (with signup nudge) ──────────────────────────
   console.log('Capturing: home-guest.png');
   const guestHomePage = await context.newPage();
   await interceptAPIs(guestHomePage);
@@ -304,7 +328,7 @@ async function captureScreenshots(baseUrl) {
   await guestHomePage.screenshot({ path: path.join(OUT, 'home-guest.png'), fullPage: false });
   await guestHomePage.close();
 
-  // ── 8. Settings screen ──────────────────────────────────────────────────
+  // ── 10. Settings screen ─────────────────────────────────────────────────
   console.log('Capturing: settings.png');
   const settingsPage = await context.newPage();
   await interceptAPIs(settingsPage);

@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middleware/auth');
 const { aiLimiter, guestAiLimiter } = require('../middleware/rateLimiter');
-const { analyzeFoodImage } = require('../services/ai');
+const { analyzeFoodImage, analyzeFoodDescription } = require('../services/ai');
 
 const router = express.Router();
 
@@ -115,9 +115,12 @@ router.post('/', authenticateToken, aiLimiter, upload.single('image'), async (re
     }
 
     // Create meal with foods
+    const { timestamp, mealType } = req.body;
     const meal = await req.prisma.meal.create({
       data: {
         userId: req.user.userId,
+        timestamp: timestamp ? new Date(timestamp) : undefined,
+        mealType: mealType || null,
         rawAiResponse: JSON.stringify(aiResult),
         foods: {
           create: aiResult.foods.map(food => ({
@@ -150,26 +153,40 @@ router.post('/', authenticateToken, aiLimiter, upload.single('image'), async (re
 });
 
 // Create manual meal (without image)
-router.post('/manual', authenticateToken, async (req, res) => {
+router.post('/manual', authenticateToken, aiLimiter, async (req, res) => {
   try {
-    const { foods } = req.body;
+    const { foods, description, timestamp, mealType } = req.body;
 
-    if (!foods || !Array.isArray(foods) || foods.length === 0) {
-      return res.status(400).json({ message: 'At least one food item is required' });
+    let resolvedFoods;
+    let rawAiResponse;
+
+    if (description) {
+      // AI-powered text analysis
+      const aiResult = await analyzeFoodDescription(description);
+      resolvedFoods = aiResult.foods || [];
+      rawAiResponse = JSON.stringify(aiResult);
+    } else if (foods && Array.isArray(foods) && foods.length > 0) {
+      // Legacy: direct foods array
+      resolvedFoods = foods;
+      rawAiResponse = JSON.stringify({ foods, manual: true });
+    } else {
+      return res.status(400).json({ message: 'Either description or foods array is required' });
     }
 
     const meal = await req.prisma.meal.create({
       data: {
         userId: req.user.userId,
-        rawAiResponse: JSON.stringify({ foods, manual: true }),
+        timestamp: timestamp ? new Date(timestamp) : undefined,
+        mealType: mealType || null,
+        rawAiResponse,
         foods: {
-          create: foods.map(food => ({
+          create: resolvedFoods.map(food => ({
             name: food.name,
             category: food.category || null,
             ingredients: food.ingredients ? JSON.stringify(food.ingredients) : null,
             brand: food.brand || null,
             restaurant: food.restaurant || null,
-            confidence: 1.0 // Manual entry = full confidence
+            confidence: description ? (food.confidence || 0.8) : 1.0
           }))
         }
       },

@@ -43,6 +43,7 @@ model Meal {
   userId        String
   user          User     @relation(fields: [userId], references: [id])
   timestamp     DateTime @default(now())
+  mealType      String?  // "morning", "lunch", "dinner"
   rawAiResponse String?  // JSON string of AI response
   foods         Food[]
 

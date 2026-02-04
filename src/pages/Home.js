@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { offlinePost } from '../services/api';
@@ -81,7 +81,6 @@ const BRISTOL_ICONS = {
 function Home() {
   const navigate = useNavigate();
   const { isGuest } = useAuth();
-  const fileInputRef = useRef(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSeverityPicker, setShowSeverityPicker] = useState(false);
@@ -94,14 +93,6 @@ function Home() {
         ? prev.filter(s => s !== symptom)
         : [...prev, symptom]
     );
-  };
-
-  const handlePhotoCapture = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      navigate('/log-meal', { state: { capturedImage: file } });
-    }
-    e.target.value = '';
   };
 
   const handleSeverityPick = (sev) => {
@@ -161,22 +152,12 @@ function Home() {
         </h1>
       </div>
 
-      <input
-        type="file"
-        id="home-photo-input"
-        accept="image/*"
-        capture="environment"
-        onChange={handlePhotoCapture}
-        ref={fileInputRef}
-        style={{ display: 'none' }}
-      />
-
       <div className="container" style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', paddingBottom: '80px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <label htmlFor="home-photo-input" className="btn btn-primary">
+          <button className="btn btn-primary" onClick={() => navigate('/log-meal')}>
             <img src={cameraIcon} alt="" style={{ width: '60px', height: '60px', objectFit: 'contain', flexShrink: 0 }} />
-            Capture Food
-          </label>
+            Log Meal
+          </button>
 
           {!showSeverityPicker ? (
             <button

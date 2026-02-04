@@ -1074,6 +1074,35 @@ body {
   text-transform: capitalize;
 }
 
+/* ── Meal logging tabs ── */
+.meal-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #E8D9C8;
+}
+
+.meal-tab {
+  flex: 1;
+  padding: 12px 0;
+  border: none;
+  background: transparent;
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #7A5A44;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.meal-tab.active {
+  color: #7E8B47;
+  font-weight: 700;
+  border-bottom-color: #7E8B47;
+}
+
 /* ── PWA install banner ── */
 .install-banner {
   position: fixed;
