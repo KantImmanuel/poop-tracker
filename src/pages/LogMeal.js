@@ -542,7 +542,7 @@ function LogMeal() {
             {!result ? (
               <>
                 {/* Date & Meal Time — manual tab only */}
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '16px', overflow: 'hidden' }}>
                   <div className="form-group" style={{ marginBottom: '12px' }}>
                     <label style={{ fontSize: '14px' }}>Date</label>
                     <input
