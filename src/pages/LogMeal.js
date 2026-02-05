@@ -87,6 +87,9 @@ function LogMeal() {
     try {
       const formData = new FormData();
       formData.append('image', image);
+      const timestamp = buildTimestamp(selectedDate, mealTime);
+      formData.append('timestamp', timestamp);
+      formData.append('mealType', mealTime);
 
       if (isGuest) {
         const response = await api.post('/meals/analyze-guest', formData, {
@@ -475,7 +478,59 @@ function LogMeal() {
           style={{ display: 'none' }}
         />
 
-        {/* Landing — two buttons */}
+        {/* Tab bar */}
+        {!result && (
+          <div className="meal-tabs">
+            <button
+              className={`meal-tab${activeTab === 'photo' ? ' active' : ''}`}
+              onClick={() => setActiveTab('photo')}
+            >
+              Take a Pic
+            </button>
+            <button
+              className={`meal-tab${activeTab === 'manual' ? ' active' : ''}`}
+              onClick={() => setActiveTab('manual')}
+            >
+              Log Manually
+            </button>
+          </div>
+        )}
+
+        {/* Shared date & meal time pickers */}
+        {!result && (
+          <div style={{ marginBottom: '16px', overflow: 'hidden' }}>
+            <div className="form-group" style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '14px' }}>Date</label>
+              <input
+                type="date"
+                className="input"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                max={getTodayDate()}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '700', color: '#4A2E1F', fontSize: '14px' }}>Meal Time</label>
+              <div className="symptom-chips">
+                {[
+                  { val: 'morning', label: 'Morning' },
+                  { val: 'lunch', label: 'Lunch' },
+                  { val: 'dinner', label: 'Dinner' },
+                ].map(t => (
+                  <button
+                    key={t.val}
+                    className={`symptom-chip${mealTime === t.val ? ' active' : ''}`}
+                    onClick={() => setMealTime(t.val)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Take a Pic tab */}
         {activeTab === 'photo' && !preview && !result && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '80px', gap: '16px' }}>
             <label
@@ -486,12 +541,6 @@ function LogMeal() {
               <span style={{ fontSize: '24px' }}>📷</span>
               Tap to Take Photo
             </label>
-            <button
-              className="btn btn-outline"
-              onClick={() => setActiveTab('manual')}
-            >
-              Log Manually
-            </button>
           </div>
         )}
 
@@ -547,38 +596,6 @@ function LogMeal() {
           <>
             {!result ? (
               <>
-                {/* Date & Meal Time — manual tab only */}
-                <div style={{ marginBottom: '16px', overflow: 'hidden' }}>
-                  <div className="form-group" style={{ marginBottom: '12px' }}>
-                    <label style={{ fontSize: '14px' }}>Date</label>
-                    <input
-                      type="date"
-                      className="input"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      max={getTodayDate()}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '700', color: '#4A2E1F', fontSize: '14px' }}>Meal Time</label>
-                    <div className="symptom-chips">
-                      {[
-                        { val: 'morning', label: 'Morning' },
-                        { val: 'lunch', label: 'Lunch' },
-                        { val: 'dinner', label: 'Dinner' },
-                      ].map(t => (
-                        <button
-                          key={t.val}
-                          className={`symptom-chip${mealTime === t.val ? ' active' : ''}`}
-                          onClick={() => setMealTime(t.val)}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
                 <div className="card" style={{ padding: '16px' }}>
                   <textarea
                     className="input"

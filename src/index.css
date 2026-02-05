@@ -398,7 +398,7 @@ input[type="date"].input {
 .landing-guest-btn {
   display: block;
   margin: 12px auto 0;
-  background: none;
+  background: white;
   border: 2px solid #E8D9C8;
   border-radius: 16px;
   color: #7A5A44;
@@ -407,6 +407,7 @@ input[type="date"].input {
   padding: 12px 28px;
   cursor: pointer;
   font-family: inherit;
+  box-shadow: 0 2px 8px rgba(74, 46, 31, 0.08);
 }
 
 .landing-hero-signin {
