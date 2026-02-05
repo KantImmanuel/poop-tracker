@@ -139,6 +139,19 @@ const MOCK_INSIGHTS_CALIBRATION = {
   triggers: []
 };
 
+// Snackbar mocks: partial progress, no analysis yet
+const MOCK_INSIGHTS_EARLY_PROGRESS = {
+  totalMeals: 1, totalPoops: 1, daysTracked: 1, daysCovered: 1, triggers: []
+};
+
+const MOCK_INSIGHTS_ALMOST_THERE = {
+  totalMeals: 3, totalPoops: 1, daysTracked: 2, daysCovered: 2, triggers: []
+};
+
+const MOCK_INSIGHTS_READY = {
+  totalMeals: 3, totalPoops: 2, daysTracked: 2, daysCovered: 2, triggers: []
+};
+
 // ── API route interceptor ───────────────────────────────────────────────────
 
 async function interceptAPIs(page, { insightsMock = MOCK_INSIGHTS } = {}) {
@@ -338,6 +351,63 @@ async function captureScreenshots(baseUrl) {
   await settingsPage.waitForTimeout(500);
   await settingsPage.screenshot({ path: path.join(OUT, 'settings.png'), fullPage: false });
   await settingsPage.close();
+
+  // ── 11. Snackbar: early progress ("Logged! 1 of 2 poops...") ─────────────
+  console.log('Capturing: snackbar-progress.png');
+  const snack1Page = await context.newPage();
+  await interceptAPIs(snack1Page, { insightsMock: MOCK_INSIGHTS_EARLY_PROGRESS });
+  await snack1Page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(snack1Page);
+  await snack1Page.evaluate(() => localStorage.removeItem('insightsGenerated'));
+  await snack1Page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await snack1Page.waitForTimeout(500);
+  await snack1Page.click('button:has-text("Log Poop")');
+  await snack1Page.waitForTimeout(300);
+  await snack1Page.click('button:has-text("Smooth")');
+  await snack1Page.waitForTimeout(200);
+  await snack1Page.click('button:has-text("Log It")');
+  await snack1Page.waitForSelector('.success-flash', { timeout: 5000 });
+  await snack1Page.waitForTimeout(300);
+  await snack1Page.screenshot({ path: path.join(OUT, 'snackbar-progress.png'), fullPage: false });
+  await snack1Page.close();
+
+  // ── 12. Snackbar: almost there ("Almost there! Just 1 more poop...") ────
+  console.log('Capturing: snackbar-almost.png');
+  const snack2Page = await context.newPage();
+  await interceptAPIs(snack2Page, { insightsMock: MOCK_INSIGHTS_ALMOST_THERE });
+  await snack2Page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(snack2Page);
+  await snack2Page.evaluate(() => localStorage.removeItem('insightsGenerated'));
+  await snack2Page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await snack2Page.waitForTimeout(500);
+  await snack2Page.click('button:has-text("Log Poop")');
+  await snack2Page.waitForTimeout(300);
+  await snack2Page.click('button:has-text("Mushy")');
+  await snack2Page.waitForTimeout(200);
+  await snack2Page.click('button:has-text("Log It")');
+  await snack2Page.waitForSelector('.success-flash', { timeout: 5000 });
+  await snack2Page.waitForTimeout(300);
+  await snack2Page.screenshot({ path: path.join(OUT, 'snackbar-almost.png'), fullPage: false });
+  await snack2Page.close();
+
+  // ── 13. Snackbar: ready ("You're ready! Head to Insights...") ───────────
+  console.log('Capturing: snackbar-ready.png');
+  const snack3Page = await context.newPage();
+  await interceptAPIs(snack3Page, { insightsMock: MOCK_INSIGHTS_READY });
+  await snack3Page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await injectAuth(snack3Page);
+  await snack3Page.evaluate(() => localStorage.removeItem('insightsGenerated'));
+  await snack3Page.goto(baseUrl, { waitUntil: 'networkidle' });
+  await snack3Page.waitForTimeout(500);
+  await snack3Page.click('button:has-text("Log Poop")');
+  await snack3Page.waitForTimeout(300);
+  await snack3Page.click('button:has-text("Soft blobs")');
+  await snack3Page.waitForTimeout(200);
+  await snack3Page.click('button:has-text("Log It")');
+  await snack3Page.waitForSelector('.success-flash', { timeout: 5000 });
+  await snack3Page.waitForTimeout(300);
+  await snack3Page.screenshot({ path: path.join(OUT, 'snackbar-ready.png'), fullPage: false });
+  await snack3Page.close();
 
   await browser.close();
   console.log(`\nAll screenshots saved to ${OUT}/`);

@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import api, { offlinePost } from '../services/api';
 import { saveGuestMeal } from '../services/guestStorage';
 import { trackEvent } from '../services/analytics';
+import { fetchInsightProgress } from '../utils/insightProgress';
+import { getProgressMessage } from '../utils/insightReadiness';
 
 function getDefaultMealTime() {
   const hour = new Date().getHours();
@@ -57,6 +59,10 @@ function LogMeal() {
   const [clarificationOptions, setClarificationOptions] = useState([]);
   const [pendingMealId, setPendingMealId] = useState(null);
 
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
   // Concealed food ingredient confirmation state
   const [ingredientSelections, setIngredientSelections] = useState({});
   const [confirmedFoods, setConfirmedFoods] = useState(new Set());
@@ -69,6 +75,17 @@ function LogMeal() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const showProgressToast = () => {
+    fetchInsightProgress(isGuest).then(({ mealsCount, poopsCount, daysCovered, hasAnalyzed }) => {
+      const msg = getProgressMessage('meal', { mealsCount, poopsCount, daysCovered }, hasAnalyzed);
+      if (msg) {
+        setToastMessage(msg);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3500);
+      }
+    }).catch(() => {});
+  };
 
   const handleCapture = (e) => {
     const file = e.target.files[0];
@@ -114,6 +131,7 @@ function LogMeal() {
         }
         setResult(aiResult);
         trackEvent('meal_logged');
+        showProgressToast();
       } else {
         const response = await offlinePost('/meals', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -126,6 +144,7 @@ function LogMeal() {
             notes: 'This meal will be analyzed when you\'re back online'
           });
           trackEvent('meal_logged');
+          showProgressToast();
           return;
         }
 
@@ -145,6 +164,7 @@ function LogMeal() {
           setResult(response.data);
         }
         trackEvent('meal_logged');
+        showProgressToast();
       }
     } catch (error) {
       console.error('Failed to upload meal:', error);
@@ -171,6 +191,7 @@ function LogMeal() {
         await saveGuestMeal(foods);
         setResult({ foods });
         trackEvent('meal_logged');
+        showProgressToast();
       } else {
         const response = await offlinePost('/meals/manual', {
           description: description.trim(),
@@ -188,6 +209,7 @@ function LogMeal() {
           setResult(response.data);
         }
         trackEvent('meal_logged');
+        showProgressToast();
       }
     } catch (error) {
       console.error('Failed to log meal:', error);
@@ -463,6 +485,15 @@ function LogMeal() {
 
   return (
     <div className="page">
+      {showToast && (
+        <div
+          className="success-flash"
+          style={{ animationDuration: '3.5s', cursor: toastMessage.includes('Insights') ? 'pointer' : undefined }}
+          onClick={toastMessage.includes('Insights') ? () => navigate('/insights') : undefined}
+        >
+          {toastMessage}
+        </div>
+      )}
       <div className="page-header">
         <h1 className="page-title">Log Meal</h1>
       </div>

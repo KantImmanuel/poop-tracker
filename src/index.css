@@ -296,7 +296,7 @@ input[type="date"].input {
 /* ── Success/error states ── */
 .success-flash {
   position: fixed;
-  top: 20px;
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(180deg, #919B54 0%, #6C7B3B 100%);
@@ -308,13 +308,16 @@ input[type="date"].input {
   z-index: 1000;
   box-shadow: 0 8px 24px rgba(108, 123, 59, 0.3);
   animation: fadeInOut 2s ease-in-out;
+  max-width: 340px;
+  text-align: center;
+  line-height: 1.4;
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
   15% { opacity: 1; transform: translateX(-50%) translateY(0); }
   85% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
 }
 
 /* ── Loading spinner ── */

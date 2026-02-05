@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { offlinePost } from '../services/api';
 import { saveGuestPoop } from '../services/guestStorage';
 import { trackEvent } from '../services/analytics';
+import { fetchInsightProgress } from '../utils/insightProgress';
+import { getProgressMessage } from '../utils/insightReadiness';
 import cameraIcon from '../assets/camera-icon.png';
 import poopIcon from '../assets/poop-icon.png';
 
@@ -83,6 +85,7 @@ function Home() {
   const navigate = useNavigate();
   const { isGuest } = useAuth();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Logged!');
   const [loading, setLoading] = useState(false);
   const [showSeverityPicker, setShowSeverityPicker] = useState(false);
   const [selectedSeverity, setSelectedSeverity] = useState(null);
@@ -112,11 +115,22 @@ function Home() {
           symptoms: selectedSymptoms.length > 0 ? selectedSymptoms : undefined
         });
       }
-      setShowSuccess(true);
       setSelectedSeverity(null);
       setSelectedSymptoms([]);
       trackEvent('poop_logged');
-      setTimeout(() => setShowSuccess(false), 2000);
+
+      // Fire-and-forget progress toast
+      fetchInsightProgress(isGuest).then(({ mealsCount, poopsCount, daysCovered, hasAnalyzed }) => {
+        const msg = getProgressMessage('poop', { mealsCount, poopsCount, daysCovered }, hasAnalyzed);
+        setToastMessage(msg || 'Logged!');
+        setShowSuccess(true);
+        const duration = msg ? 3500 : 2000;
+        setTimeout(() => setShowSuccess(false), duration);
+      }).catch(() => {
+        setToastMessage('Logged!');
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+      });
     } catch (error) {
       console.error('Failed to log poop:', error);
       alert('Failed to log. Please try again.');
@@ -127,7 +141,15 @@ function Home() {
 
   return (
     <div className="page">
-      {showSuccess && <div className="success-flash">Logged!</div>}
+      {showSuccess && (
+        <div
+          className="success-flash"
+          style={toastMessage !== 'Logged!' ? { animationDuration: '3.5s', cursor: 'pointer' } : undefined}
+          onClick={toastMessage.includes('Insights') ? () => navigate('/insights') : undefined}
+        >
+          {toastMessage}
+        </div>
+      )}
 
       <div className="page-header" style={{ textAlign: 'center', position: 'relative' }}>
         <button

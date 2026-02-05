@@ -94,6 +94,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('guestMode');
+    localStorage.removeItem('insightsGenerated');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setIsGuest(false);

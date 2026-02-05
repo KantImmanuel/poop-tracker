@@ -20,6 +20,9 @@ function Insights() {
         setInsights(stats);
       } else {
         const response = await api.get('/insights/correlations');
+        if (response.data.lastAnalyzed) {
+          localStorage.setItem('insightsGenerated', 'true');
+        }
         setInsights(response.data);
       }
     } catch (error) {
@@ -50,9 +53,11 @@ function Insights() {
         const poops = await getGuestPoops();
         const response = await api.post('/insights/analyze-guest', { meals, poops });
         setInsights(response.data);
+        localStorage.setItem('insightsGenerated', 'true');
       } else {
         const response = await api.post('/insights/analyze');
         setInsights(response.data);
+        localStorage.setItem('insightsGenerated', 'true');
       }
     } catch (error) {
       console.error('Failed to analyze:', error);
